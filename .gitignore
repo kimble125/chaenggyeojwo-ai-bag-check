@@ -1,0 +1,14 @@
+.env
+.env.*
+*.pem
+*.key
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+.next/
+.DS_Store
+# 시험용 원본 사진·캡처는 Drive에 두고 목록만 올린다
+eval/raw/
