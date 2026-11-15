@@ -2,7 +2,7 @@
 
 | 어디 | 용도 | 주소 | 누가 들어올 수 있나 |
 |---|---|---|---|
-| GitHub | 코드·원고·기록 | https://github.com/kimble125/chaenggyeojwo-ai-bag-check (비공개) | 호연, 동현님(초대 뒤) |
+| GitHub | 코드·원고·기록 | https://github.com/kimble125/chaenggyeojwo-ai-bag-check (비공개) | 호연, 동현님(11/15 초대 보냄, 수락 대기) |
 | Notion | 온보딩 기획안·후보 비교·일정 표 | https://app.notion.com/p/AI-v0-1-2026-11-11-a95ed449926c44cd9be45e6363f29ecf | 링크가 있는 사람은 편집 가능 |
 | Google Drive | 사진·캡처·제출본 사본 | https://drive.google.com/drive/folders/1FRigh83Te-Hk8-L-uHLFYKPZ9Q6ezdpz (폴더 `elice_chaenggyeojwo_team`) | 호연(동현님 공유 전) |
 | 카카오톡 | ELICE 해커톤방 | | 호연, 동현님 |
@@ -26,4 +26,5 @@ elice_chaenggyeojwo_team/
 ## 카카오톡 @ChatGPT
 - 한 번에 답하는 질문용. 이전 대화를 기억하지 않고, 글자만 받는다(카카오 ChatGPT 채널 안내 https://pf.kakao.com/_NDnjX ).
 - GitHub·Notion·Drive를 읽지 못한다. 필요한 내용은 질문에 같이 붙여 넣는다.
+- 방의 '톡마크' 봇에 세 주소를 저장해 뒀다. 방에서 `@톡마크 깃헙`, `@톡마크 노션`, `@톡마크 드라이브`로 찾는다.
 - 저장소나 Notion을 읽혀야 하는 일은 각자의 ChatGPT·Claude 앱에서 한다(앱 연결은 각자 계정에서).
