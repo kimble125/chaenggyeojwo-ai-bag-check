@@ -5,7 +5,8 @@
 | GitHub | 코드·원고·기록 | https://github.com/kimble125/chaenggyeojwo-ai-bag-check (비공개) | 호연, 동현님(11/15 초대 보냄, 수락 대기) |
 | Notion | 온보딩 기획안·후보 비교·일정 표 | https://app.notion.com/p/AI-v0-1-2026-11-11-a95ed449926c44cd9be45e6363f29ecf | 링크가 있는 사람은 편집 가능 |
 | Google Drive | 사진·캡처·제출본 사본 | https://drive.google.com/drive/folders/1FRigh83Te-Hk8-L-uHLFYKPZ9Q6ezdpz (폴더 `elice_chaenggyeojwo_team`) | 호연(동현님 공유 전) |
-| 카카오톡 | ELICE 해커톤방 | | 호연, 동현님 |
+| Slack | 팀 대화·공지·알림 허브(11/16 호연이 만듦) | https://app.slack.com/client/T0CJ4KQ9VBN (워크스페이스 '잘챙겨조') | 호연(동현님 초대 전) |
+| 카카오톡 | ELICE 해커톤방(급한 호출용) | | 호연, 동현님 |
 | 엘리스 플랫폼 | 사전 교육, 헬피챗, 결과물 제출 | https://ai-challenge.elice.io/lxp | 각자 가입 |
 
 ## Drive 폴더
@@ -21,10 +22,36 @@ elice_chaenggyeojwo_team/
 - 글자로 된 것(코드, 기획안 원고, 결정)은 GitHub.
 - 큰 파일(사진, 영상, 캡처 원본)은 Drive. GitHub에는 목록과 정답표만.
 - 같이 보며 고치는 표와 답 칸은 Notion.
-- 급한 말은 카카오톡. 정해진 것은 그날 안에 GitHub나 Notion에 옮긴다.
+- 일하면서 나누는 말은 Slack `#proj-엘리스-작업`, 정한 것은 `#announce-공지-결정`에 한 줄. 급한 호출만 카카오톡.
+- 할 일·담당·마감은 GitHub 이슈·Projects 보드(연결 뒤). Jira는 쓰지 않는 안을 추천(11/16 비교: 새 가입과 관리자 설정이 필요하고 AI 도구가 바로 못 읽음).
 
 ## 카카오톡 @ChatGPT
 - 한 번에 답하는 질문용. 이전 대화를 기억하지 않고, 글자만 받는다(카카오 ChatGPT 채널 안내 https://pf.kakao.com/_NDnjX ).
 - GitHub·Notion·Drive를 읽지 못한다. 필요한 내용은 질문에 같이 붙여 넣는다.
 - 방의 '톡마크' 봇에 세 주소를 저장해 뒀다. 방에서 `@톡마크 깃헙`, `@톡마크 노션`, `@톡마크 드라이브`로 찾는다.
 - 저장소나 Notion을 읽혀야 하는 일은 각자의 ChatGPT·Claude 앱에서 한다(앱 연결은 각자 계정에서).
+
+## Slack 채널 (11/16 정리, 무료 플랜)
+| 채널 | 용도 |
+|---|---|
+| `#announce-공지-결정` (기본 채널) | 공지와 정한 것만 한 줄. 피클이 올린 대회 요약이 여기 있다 |
+| `#proj-엘리스-작업` | 일하면서 나누는 말, 질문, 허들(무료는 1:1). 위 책갈피에 Notion 두 장·저장소·Drive·제출 페이지 |
+| `#github-알림` | 저장소 이슈·PR·커밋 알림만(`/github subscribe kimble125/chaenggyeojwo-ai-bag-check`, 연결 뒤) |
+| `#소셜` | 보관함(2명이라 쓰지 않음, 언제든 되살림) |
+
+- 채널 이름은 Slack이 권하는 앞말(`announce-`, `proj-`)을 따랐다(Slack 도움말 https://slack.com/help/articles/217626408-Create-guidelines-for-channel-names ). 팀명이 아직 정해지지 않아 채널 이름에 팀명을 넣지 않았다.
+- 무료 플랜: 메시지 기록 90일, 앱 10개, 허들 1:1, 리스트·워크플로는 유료(https://slack.com/pricing/free ). 정한 것은 저장소에 옮겨 둔다.
+- 설치된 앱(11/16): Claude, GitHub, Jira Cloud, Notion, Google Drive. Notion 앱의 'Invite Link'는 Notion 워크스페이스 전체 초대일 수 있으니 동현님에게는 페이지 공유로 준다.
+
+## 피클 요약에서 고쳐 읽을 곳 (11/16 검토)
+| 요약의 내용 | 고쳐 읽기 | 근거 |
+|---|---|---|
+| 팀 '챙겨줘' | 팀명·서비스명은 윤곽을 잡은 뒤 정함. 주제는 '챙겼지' 잠정 | 호연 11/16 |
+| 심사 기준 ③ 서비스 구현 완성도 | 플랫폼 과목 화면과 11/14 메일은 '기획의 구체성'. 공개 홈페이지만 옛 표현 | contest-brief.md 4절 |
+| 균등 배점, 순위는 ③④에서 갈림 | 배점 비공개. 추정 | contest-brief.md 4절 |
+| 기획안 PPTX 가능 | 11/14 메일에 PPTX 없음 → PDF로 | contest-brief.md 2절 |
+| 범용 공지문(워크숍·건강검진) + 사용자 3명 | 지금 기획은 페르소나 '엄마와 아이', 첫 장면 '현장체험학습 전날'. 시험·면접은 둘째 예시 | Notion 비교안 2절 |
+| 전후 시간 15분→1분, 3분→30초 | 잰 값이 아님. 재 본 값만 쓰거나 '가정'으로 표시 | 근거 없음 |
+| 11/18 테스트 3종 | 점검 1(11/17)은 범용 AI 비교, 점검 2(11/18)는 한 장면 완주. 3종 사례는 시험 자료 후보 | Notion 비교안 4절 |
+| 참가 인증서 11/28–11/30 | 신청 기간 11/14–11/30 | contest-brief.md 5절 |
+| 1인당 1만 원 상당 크레딧 | 우리 기록에서 확인 못 함 | |
