@@ -5,14 +5,16 @@
    추가 기능 주소가 없는 서버에서는 아무것도 하지 않는다. */
 (() => {
   SRC.recommend = "추천";
-  let MODE = null;
+  let MODE = null, readText = "";
   const baseApi = api;
   const plusApi = (path, opt) => baseApi(`/api/plus${path}`, opt);
 
   // 캘린더에 넣은 직후, 같은 통신문 글로 금지·조건을 뽑아 붙인다(글은 서버에 저장하지 않는다)
   api = async function (path, opt = {}) {
-    // 글이 없으면(사진 통신문) 추출 결과의 메모를 대신 쓴다. 추출 지시가 금지 문장을 메모에 옮기게 돼 있다
-    const text = path === "/api/notice/commit" ? (fetched?.text || $("#textIn").value || (opt.body?.events || []).map((e) => e.notes || "").join("\n")) : null;
+    // 금지·조건은 방금 읽힌 그 통신문 글로만 찾는다(다른 탭에 남아 있던 예전 글을 쓰지 않는다).
+    // 글이 없으면(사진 통신문) 추출 결과의 메모를 쓴다. 추출 지시가 금지 문장을 메모에 옮기게 돼 있다
+    if (path === "/api/notice/extract") readText = opt.body instanceof FormData ? String(opt.body.get("text") || "") : "";
+    const text = path === "/api/notice/commit" ? (readText || (opt.body?.events || []).map((e) => e.notes || "").join("\n")) : null;
     const r = await baseApi(path, opt);
     if (text !== null && MODE && r.created) {
       let failed = 0;
@@ -75,9 +77,10 @@
     const redo = v.kind !== "deadline" && !p.analyzed && v.items.some((i) => i.source === "notice") ? `<div class="card plus"><strong>금지·조건을 아직 확인하지 못했어요</strong>
       <p class="hint">통신문 글을 붙여 넣으면 가져오지 않는 것과 조건을 다시 찾아요. 글은 저장하지 않아요.</p>
       <textarea id="redoText" rows="4" placeholder="통신문 글"></textarea><button class="ghost small" id="redoBtn">통신문 글로 다시 확인</button></div>` : "";
+    const wxNote = v.weather?.status === "ok" ? `<p class="hint plus">날씨·미세먼지는 정해 둔 동네의 예보(${esc(v.weather.provider || "Open-Meteo")}${v.weather.fetched_at ? `, ${esc(v.weather.fetched_at.slice(11))} 기준` : ""})라 실제와 다를 수 있어요. 아이의 위치는 쓰지 않아요.</p>` : "";
     const anchor = $("#sheet .kid-cta") || $("#sheet .actions:last-of-type");
     $("#sheet").querySelectorAll(".plus").forEach((x) => x.remove());
-    anchor.insertAdjacentHTML("beforebegin", redo + ban + recs + result);
+    anchor.insertAdjacentHTML("beforebegin", redo + ban + recs + wxNote + result);
     $("#redoBtn")?.addEventListener("click", async () => {
       const text = $("#redoText").value.trim();
       if (!text) return toast("통신문 글을 붙여 넣어 주세요");

@@ -115,7 +115,7 @@ def flags(event: dict, scenario: dict | None) -> set[str]:
 
 def _basis(item: dict) -> str:
     n = len(item.get("seen_in") or [])
-    return f"비슷한 알림장 {n}건에서 봤어요" if n else "챙겼지 제안"
+    return f"비슷한 알림장 {n}건에서 봤어요" if n else "가방쏙 제안"
 
 
 def _rec(item: dict, group: str) -> dict:

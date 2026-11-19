@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#fff6e9">
-<title>챙겼지 · 가방 싸기</title>
+<title>가방쏙 · 가방 싸기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Color+Emoji&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/kid.css">
@@ -13,18 +13,23 @@
 <div class="app" id="app">
   <header class="bar">
     <a class="back" href="/" aria-label="부모 화면으로">‹ 부모</a>
-    <span class="brand">챙겼지</span>
+    <span class="brand">가방쏙</span>
     <span class="bar-r">
       <button class="speak" id="openBoard" aria-label="내 스티커판" hidden>⭐</button>
       <button class="speak" id="speakAll" aria-label="읽어 주기">🔈</button>
     </span>
   </header>
+  <div class="prog" id="prog" hidden aria-live="polite">
+    <div class="prog-bar"><i id="progFill"></i></div><span id="progText"></span><span class="prog-bag" aria-hidden="true">🎒</span>
+  </div>
 
   <!-- C-1 펼치기 -->
   <section class="screen" id="s-lay">
     <div class="head">
-      <h1 id="layTitle">가방 싸기</h1>
-      <p class="lead"><b id="layCount">0</b>개를 펼쳐 놓자</p>
+      <img class="mate" id="mate-s-lay" src="/static/mascot/ssok_hello.png" alt="">
+      <div class="say"><h1 id="layTitle">가방 싸기</h1>
+      <p class="lead"><b id="layCount">0</b>개를 펼쳐 놓자<small id="layMore"></small></p>
+      <p class="wx" id="wxLine" hidden></p></div>
     </div>
     <button class="ban" id="banStrip" hidden></button>
     <div class="grid" id="layGrid"></div>
@@ -45,8 +50,9 @@
   <!-- 추천: 이것도 챙길까? -->
   <section class="screen" id="s-rec">
     <div class="head">
-      <h1>이것도 챙길까?</h1>
-      <p class="lead" id="recLead">알림장에는 없지만 있으면 좋아</p>
+      <img class="mate" id="mate-s-rec" src="/static/mascot/ssok_look.png" alt="">
+      <div class="say"><h1>이것도 챙길까?</h1>
+      <p class="lead" id="recLead">알림장에는 없지만 있으면 좋아</p></div>
     </div>
     <div class="stage">
       <div class="big rec in" id="recCard"></div>
@@ -62,8 +68,9 @@
   <!-- 가져오면 안 되는 것이 보였을 때 -->
   <section class="screen" id="s-warn">
     <div class="head">
-      <h1 id="warnTitle">이건 두고 가자</h1>
-      <p class="lead" id="warnLead"></p>
+      <img class="mate" id="mate-s-warn" src="/static/mascot/ssok_no.png" alt="">
+      <div class="say"><h1 id="warnTitle">이건 두고 가자</h1>
+      <p class="lead" id="warnLead"></p></div>
     </div>
     <div class="stage">
       <div class="big warn in" id="warnCard"></div>
@@ -79,15 +86,16 @@
   <section class="screen" id="s-scan">
     <div class="scan">
       <div class="polaroid"><img id="scanImg" alt="펼쳐 놓은 준비물 사진"><i class="beam"></i></div>
-      <p class="lead">사진을 보고 있어요…</p>
+      <p class="lead"><img class="mate small" src="/static/mascot/ssok_look.png" alt="">사진을 보고 있어요…</p>
     </div>
   </section>
 
   <!-- C-2 하나씩 -->
   <section class="screen" id="s-one">
     <div class="head">
-      <h1 id="oneTitle">하나만 더 보자</h1>
-      <p class="lead" id="oneLead">사진에서 안 보였어</p>
+      <img class="mate" id="mate-s-one" src="/static/mascot/ssok_look.png" alt="">
+      <div class="say"><h1 id="oneTitle">하나만 더 보자</h1>
+      <p class="lead" id="oneLead">사진에서 안 보였어</p></div>
     </div>
     <div class="dots" id="dots" aria-hidden="true"></div>
     <div class="stage">
@@ -104,8 +112,9 @@
   <!-- C-3 결과 -->
   <section class="screen" id="s-done">
     <div class="head">
-      <h1 id="doneTitle"></h1>
-      <p class="lead" id="doneLead"></p>
+      <img class="mate" id="mate-s-done" src="/static/mascot/ssok_hello.png" alt="">
+      <div class="say"><h1 id="doneTitle"></h1>
+      <p class="lead" id="doneLead"></p></div>
     </div>
     <button class="ban" id="doneBan" hidden></button>
     <div class="grid" id="doneGrid"></div>
@@ -120,7 +129,7 @@
   <!-- 보고 완료 -->
   <section class="screen" id="s-sent">
     <div class="sent">
-      <div class="sent-ic">📨</div>
+      <img class="mate big-mate" src="/static/mascot/ssok_star.png" alt="">
       <h1>엄마 화면에 남겼어!</h1>
       <p class="lead" id="sentLead"></p>
       <p class="fine">엄마가 부모 화면을 열면 알림함에서 볼 수 있어요</p>
@@ -135,8 +144,9 @@
   <!-- 칭찬 스티커판 -->
   <section class="screen" id="s-board">
     <div class="head">
-      <h1>내 스티커판</h1>
-      <p class="lead" id="boardLead"></p>
+      <img class="mate" id="mate-s-board" src="/static/mascot/ssok_star.png" alt="">
+      <div class="say"><h1>내 스티커판</h1>
+      <p class="lead" id="boardLead"></p></div>
     </div>
     <div class="board" id="boardGrid"></div>
     <div class="dock">
@@ -147,8 +157,9 @@
   <!-- 돌아오기: 집에 와서 가방 확인 -->
   <section class="screen" id="s-home">
     <div class="head">
-      <h1 id="homeTitle">집에 왔다! 가방 확인하자</h1>
-      <p class="lead" id="homeLead"></p>
+      <img class="mate" id="mate-s-home" src="/static/mascot/ssok_hello.png" alt="">
+      <div class="say"><h1 id="homeTitle">집에 왔다! 가방 확인하자</h1>
+      <p class="lead" id="homeLead"></p></div>
     </div>
     <div class="grid" id="homeGrid"></div>
     <p class="tip">가져온 물건을 누르면 <b>가져왔어</b>로 바뀌어요</p>

@@ -221,7 +221,7 @@ def quick_event(scenario_id: str, date: str, title: str | None = None) -> int | 
     recs = [r for r in recommend.starter_items(scenario_id, data) if not r["guardian_decides"]]
     eid = db.insert_event(
         {"title": title or sc["name"], "kind": "event", "date": date, "outdoor": "outdoor" in sc.get("tags", []),
-         "notes": "알림장 없이 만든 일정이에요. 준비물은 챙겼지 추천이라 빼거나 더해도 돼요."},
+         "notes": "알림장 없이 만든 일정이에요. 준비물은 가방쏙 추천이라 빼거나 더해도 돼요."},
         [{"name": r["name"], "source": "recommend", "reason": f"{r['why']} · {r['basis']}"} for r in recs])
     ev = db.get_event(eid)
     for it, r in zip(ev["items"], recs):

@@ -69,6 +69,18 @@ function toast(m, ms = 2600) {
 function show(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === id));
   window.scrollTo(0, 0);
+  renderProg();
+}
+// 진행 막대: 세는 준비물 가운데 가방에 넣은 수(추천으로만 붙은 것은 세지 않는다)
+function renderProg() {
+  const box = $("#prog"), on = onScreen();
+  const req = ev ? required() : [];
+  box.hidden = !req.length || !["s-lay", "s-one", "s-done"].includes(on);
+  if (box.hidden) return;
+  const n = req.filter((i) => i.checked).length;
+  $("#progFill").style.width = `${Math.round((n / req.length) * 100)}%`;
+  $("#progText").textContent = `가방 속 ${n} / ${req.length}`;
+  box.classList.toggle("full", n === req.length);
 }
 const onScreen = () => document.querySelector(".screen.on")?.id;
 // 한 번에 하나만: 저장하는 동안 다른 버튼을 막는다
@@ -131,6 +143,17 @@ function card(it, i, view) {
     ${tag}${watch}<span class="ic">${iconFor(it)}</span><span class="nm">${esc(nm)}</span>${cond ? `<span class="cond">${esc(cond)}</span>` : ""}${hint && view !== "result" ? `<span class="hint">${esc(hint)}</span>` : ""}${state}</button>`;
 }
 
+// 날씨 한 줄: 예보에서 읽은 것만 말한다(없으면 안 보인다)
+function wxLine() {
+  const w = ev?.weather;
+  if (!w || w.status !== "ok") return "";
+  const bits = [];
+  if ((w.rain_prob_window ?? w.rain_prob ?? 0) >= 60) bits.push("☔ 비 소식이 있어");
+  if (["나쁨", "매우나쁨"].includes(w.pm10_grade) || ["나쁨", "매우나쁨"].includes(w.pm25_grade)) bits.push("😷 먼지가 많아");
+  if (w.t_min != null && w.t_min <= 0) bits.push("🧣 많이 추워"); else if (w.t_max != null && w.t_max >= 30) bits.push("🥵 많이 더워");
+  if (!bits.length) return "";
+  return `${bits.join(" · ")} (${w.simulated ? "가정한 날씨" : "예보"}${w.t_min != null ? ` ${Math.round(w.t_min)}~${Math.round(w.t_max)}°C` : ""})`;
+}
 /* ---------- 펼치기 ---------- */
 function renderLay() {
   const g = $("#layGrid");
@@ -140,7 +163,11 @@ function renderLay() {
     b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
     say(speakOf(it));
   }));
-  $("#layCount").textContent = items.length;
+  const nReq = required().length, nOpt = items.length - nReq;
+  $("#layCount").textContent = nReq || items.length;
+  $("#layMore").textContent = nReq && nOpt ? ` · 추천 ${nOpt}개` : "";
+  const wx = wxLine(), wl = $("#wxLine");
+  wl.hidden = !wx; wl.textContent = wx;
   const ban = banList(), strip = $("#banStrip");
   strip.hidden = !ban.length;
   if (ban.length) strip.innerHTML = `<b>🙅 이건 두고 가요</b>${ban.map((f) => esc(f.name)).join(" · ")}`;
@@ -203,6 +230,7 @@ async function setChecked(id, v) {
   await api(`/api/items/${id}`, { method: "PATCH", json: { checked: v } });   // 저장이 된 뒤에만 화면 상태를 바꾼다
   const it = ev.items.find((x) => x.id === id);
   if (it) it.checked = v;
+  renderProg();
 }
 
 /* ---------- 추천: 이것도 챙길까? ---------- */
@@ -294,6 +322,7 @@ function renderDone(celebrate = true) {
   const all = req.length > 0 && left.length === 0 && ban.length === 0;
   $("#s-done").classList.toggle("allclear", all);
   $("#doneTitle").textContent = all ? "다 챙겼지! 🎉" : `${done.length}개 넣었어!`;
+  $("#mate-s-done").src = `/static/mascot/ssok_${all ? "star" : ban.length ? "no" : "hello"}.png`;
   let lead = all ? "가방 준비 끝!" : left.length ? `<b>${left.length}</b>개 남았어` : "";
   if (ban.length) lead += `${lead ? " · " : ""}두고 갈 것 <b>${ban.length}</b>개 확인하자`;
   const optLeft = opt.filter((i) => !i.checked).length;
@@ -323,9 +352,9 @@ function renderDone(celebrate = true) {
 }
 $("#fixAlerts").addEventListener("click", () => { warnQ = openAlerts().slice(); afterWarn = () => renderDone(false); renderWarn(); });
 $("#report").addEventListener("click", () => once(async () => {
-  let r;
-  try { r = await api(`/api/plus/events/${ev.id}/kid-report`, { method: "POST" }); r.left = r.summary.left; }
-  catch { r = await api(`/api/events/${ev.id}/kid-report`, { method: "POST" }); }
+  let r;                                                             // 추천·금지가 붙은 일정은 그 집계로만 보낸다(실패하면 다시 누르게)
+  if (plus) { r = await api(`/api/plus/events/${ev.id}/kid-report`, { method: "POST" }); r.left = r.summary.left; }
+  else r = await api(`/api/events/${ev.id}/kid-report`, { method: "POST" });
   $("#sentLead").textContent = r.left.length ? `아직 ${r.left.length}개는 엄마랑 같이 찾아보자` : "엄마가 보면 칭찬 스티커를 줄지도 몰라";
   show("s-sent");
 }));
@@ -420,7 +449,7 @@ function titleFor(e) {
   $("#demoRow").hidden = !mode.demo;
   if (mode.demo) $("#photoNote").textContent = "예시 모드예요. 사진을 실제로 보지 않고 준비된 결과를 보여 줘요.";
   $("#layTitle").textContent = titleFor(ev);
-  document.title = `챙겼지 · ${titleFor(ev)}`;
+  document.title = `가방쏙 · ${titleFor(ev)}`;
   if (q.get("mode") === "home" && plus) {
     home = await api(`/api/plus/events/${ev.id}/return`);
     return renderHome();

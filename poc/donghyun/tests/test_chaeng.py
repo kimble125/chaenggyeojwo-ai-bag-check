@@ -390,5 +390,67 @@ class SimpleExtractTest(unittest.TestCase):
         self.assertEqual(simple_extract.split_items("필기도구(연필 2자루, 지우개), 물통 등"), ["필기도구(연필 2자루, 지우개)", "물통"])
 
 
+class DemoDispatchTest(unittest.TestCase):
+    """예시 서버의 주소표를 소켓 없이 부른다(브라우저 안에서 도는 판이 쓰는 길)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import demo_server
+        cls.d = demo_server
+
+        def no_network(url, params):
+            raise OSError("시험에서는 네트워크를 쓰지 않는다")
+        demo_server._get_json = no_network
+        demo_server.boot()
+
+    def call(self, method, path, **kw):
+        return self.d.dispatch(method, path, **kw)
+
+    def test_notice_to_calendar_to_kid_to_parent(self):
+        code, s = self.call("POST", "/api/notice/fetch", json_body={"url": "sample:b"})
+        self.assertEqual(code, 200)
+        code, ex = self.call("POST", "/api/notice/extract", fields={"text": s["text"], "title": s["title"]})
+        self.assertEqual((code, len(ex["events"])), (200, 1))
+        code, c = self.call("POST", "/api/notice/commit", json_body={"events": ex["events"], "source_title": s["title"]})
+        eid = c["created"][0]["id"]
+        code, v = self.call("POST", f"/api/plus/events/{eid}/analyze", json_body={"text": s["text"]})
+        self.assertIn("도시락", [f["name"] for f in v["plus"]["forbidden"]])
+        code, r = self.call("POST", f"/api/plus/events/{eid}/photo-check", query={"case": "miss"}, files=[("image", "image/jpeg", b"")])
+        self.assertEqual((code, r["mode"]), (200, "example"))
+        self.assertTrue(r["seen"] and r["not_seen"])
+        for iid in r["seen"] + r["not_seen"]:
+            self.assertEqual(self.call("PATCH", f"/api/items/{iid}", json_body={"checked": True})[0], 200)
+        code, rep = self.call("POST", f"/api/plus/events/{eid}/kid-report")
+        self.assertEqual((code, rep["summary"]["left"]), (200, []))
+        code, st = self.call("POST", f"/api/plus/events/{eid}/stickers", json_body={"sticker": "⭐", "message": "잘했어"})
+        self.assertEqual(code, 200)
+        self.assertTrue(self.call("GET", "/api/plus/stickers")[1])
+        code, back = self.call("GET", f"/api/plus/events/{eid}/return")
+        self.assertEqual(code, 200)
+        self.assertTrue(back["items"])
+
+    def test_errors_are_statuses_not_exceptions(self):
+        self.assertEqual(self.call("GET", "/api/plus/events/999999")[0], 404)
+        self.assertEqual(self.call("GET", "/api/nope")[0], 404)
+        self.assertEqual(self.call("GET", "/static/kid.js")[0], 404)          # 화면 파일은 이 길로 열지 않는다
+        self.assertEqual(self.call("POST", "/api/notice/extract", fields={})[0], 400)
+        self.assertEqual(self.call("POST", "/api/plus/quick-event", json_body={"scenario": "swim_academy", "date": "2026-02-31"})[0], 400)
+        self.assertEqual(self.call("POST", "/api/plus/events/1/return", json_body={})[0], 400)
+
+    def test_photo_only_notice_uses_example_and_says_so(self):
+        code, ex = self.call("POST", "/api/notice/extract", fields={}, files=[("images", "image/jpeg", b"")])
+        self.assertEqual(code, 200)
+        self.assertIn("예시", ex["note"])
+
+    def test_reset_returns_to_seed(self):
+        self.d.boot(reset=True)
+        seeded = [e["title"] for e in self.call("GET", "/api/events")[1]]
+        self.assertGreaterEqual(len(seeded), 2)
+        self.call("POST", "/api/plus/quick-event", json_body={"scenario": "swim_academy", "date": "2026-12-01"})
+        self.assertEqual(len(self.call("GET", "/api/events")[1]), len(seeded) + 1)
+        self.d.boot(reset=True)
+        self.assertEqual([e["title"] for e in self.call("GET", "/api/events")[1]], seeded)
+
+
 if __name__ == "__main__":
     unittest.main()

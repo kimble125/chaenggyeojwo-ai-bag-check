@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<script src="shim.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4ef">
+<title>가방쏙</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1><img class="logo" src="mascot/ssok_hello.png" alt="">가방쏙</h1>
+    <p class="sub" id="todayLabel"></p>
+  </div>
+  <button class="icon-btn" id="settingsBtn" aria-label="설정">⚙︎</button>
+</header>
+
+<main>
+  <!-- 오늘 -->
+  <section class="view active" id="view-home">
+    <div id="tomorrowCard"></div>
+    <h2 class="sec">다가오는 일정</h2>
+    <div id="upcoming" class="list"></div>
+  </section>
+
+  <!-- 캘린더 -->
+  <section class="view" id="view-cal">
+    <div class="cal-head">
+      <button class="icon-btn" id="prevM" aria-label="이전 달">‹</button>
+      <strong id="monthLabel"></strong>
+      <button class="icon-btn" id="nextM" aria-label="다음 달">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <h2 class="sec" id="dayLabel"></h2>
+    <div id="dayList" class="list"></div>
+  </section>
+
+  <!-- 추가 -->
+  <section class="view" id="view-add">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-src="url">링크</button>
+      <button class="tab" data-src="text">붙여넣기</button>
+      <button class="tab" data-src="photo">사진</button>
+    </div>
+    <div class="card">
+      <div class="src" data-src="url">
+        <label class="lbl" for="urlIn">학교 홈페이지 가정통신문 주소</label>
+        <input id="urlIn" type="url" inputmode="url" placeholder="https://www.goesn.kr/…/selectNttInfo.do?…">
+        <button class="ghost small" id="sampleBtn">예시 통신문 넣기</button>
+      </div>
+      <div class="src hidden" data-src="text">
+        <label class="lbl" for="textIn">통신문 내용</label>
+        <textarea id="textIn" rows="8" placeholder="알림장 앱이나 문자에서 복사한 내용을 붙여넣으세요"></textarea>
+      </div>
+      <div class="src hidden" data-src="photo">
+        <label class="lbl" for="photoIn">종이 통신문 사진</label>
+        <input id="photoIn" type="file" accept="image/*" capture="environment" multiple>
+        <div id="photoPrev" class="thumbs"></div>
+      </div>
+      <button class="primary" id="extractBtn">AI로 일정·준비물 뽑기</button>
+      <p class="hint" id="extractStatus"></p>
+    </div>
+    <div id="preview"></div>
+  </section>
+
+  <!-- 알림 -->
+  <section class="view" id="view-noti">
+    <div class="card">
+      <p class="hint">일정 <b>전날 19:00</b>에 가방 싸기 알림, <b>당일 아침</b>에 날씨까지 반영한 마지막 확인 알림을 보내요.</p>
+      <button class="ghost small" id="permBtn">브라우저 알림 허용</button>
+    </div>
+    <div id="notiList" class="list"></div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button data-view="home" class="active"><span>🏠</span>오늘</button>
+  <button data-view="cal"><span>📅</span>캘린더</button>
+  <button data-view="add" class="add"><span>＋</span>통신문</button>
+  <button data-view="noti"><span>🔔</span>알림<i id="notiDot" class="dot hidden"></i></button>
+</nav>
+
+<!-- 일정 상세 시트 -->
+<div class="sheet-back hidden" id="sheetBack"></div>
+<div class="sheet hidden" id="sheet" role="dialog" aria-modal="true"></div>
+
+<!-- 설정 -->
+<dialog id="settingsDlg">
+  <form method="dialog" class="card">
+    <h3>기본 위치</h3>
+    <p class="hint">장소 좌표를 모를 때 이 위치의 날씨·미세먼지를 봐요.</p>
+    <label class="lbl">이름<input id="homeName"></label>
+    <div class="row2">
+      <label class="lbl">위도<input id="homeLat" inputmode="decimal"></label>
+      <label class="lbl">경도<input id="homeLon" inputmode="decimal"></label>
+    </div>
+    <button class="ghost small" type="button" id="geoBtn">현재 위치 쓰기</button>
+    <div class="row2">
+      <button class="ghost" value="cancel">닫기</button>
+      <button class="primary" id="homeSave" value="ok">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast hidden" id="toast"></div>
+<script src="app.js"></script>
+<script src="plus.js"></script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fff6e9">
+<title>가방쏙 · 가정통신문에서 가방까지 (한눈에 보기)</title>
+<meta name="description" content="엄마가 가정통신문을 넣으면 일정·준비물·가져오지 않는 것이 정리되고, 아이가 미션처럼 스스로 가방을 싸요. 엘리스 AI 챌린지 2026, 팀 잘챙겼조.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#fff6e9; --paper:#fff; --ink:#23263a; --soft:#62616d; --edge:#eadcc5; --violet:#7c5cff; --violet-soft:#efeaff; --yellow:#ffd76a; --green:#2f6f5e; --green-soft:#e2efe9; --red:#b2483a; --red-soft:#f8e9e4; --blue-soft:#e3eeff; color-scheme: light; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans KR", system-ui, sans-serif; line-height: 1.6; }
+  h1, h2, h3, .jua { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; letter-spacing: -.01em; }
+  a { color: #4a35c9; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 34px 0 8px; }
+  h2 { font-size: 28px; margin: 0 0 4px; }
+  h2 small { font-family: "Noto Sans KR", sans-serif; font-size: 14px; color: var(--soft); margin-left: 8px; }
+  .lead { margin: 0 0 16px; color: var(--soft); }
+  .card { background: var(--paper); border-radius: 20px; box-shadow: 0 4px 0 var(--edge); padding: 18px 20px; }
+  .src { font-size: 12.5px; color: var(--soft); }
+  .src a { color: inherit; }
+  /* 머리 */
+  .hero { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; padding: 30px 0 10px; }
+  .hero h1 { font-size: 54px; margin: 0; color: var(--violet); line-height: 1.05; }
+  .hero .tag { font-size: 22px; margin: 8px 0 10px; font-weight: 700; }
+  .hero p { margin: 0 0 14px; color: var(--soft); max-width: 620px; }
+  .hero img { width: 230px; max-width: 34vw; }
+  .btn { display: inline-block; text-decoration: none; background: var(--ink); color: #fff; border-radius: 16px; padding: 13px 20px; font-family: "Jua", sans-serif; font-size: 20px; box-shadow: 0 4px 0 #0c0e19; margin: 0 8px 8px 0; }
+  .btn.soft { background: var(--paper); color: var(--ink); box-shadow: 0 4px 0 var(--edge); }
+  .btn:active { transform: translateY(2px); }
+  .meta { font-size: 13.5px; color: var(--soft); }
+  /* 문제 */
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .fact b { display: block; font-family: "Jua", sans-serif; font-weight: 400; font-size: 34px; color: var(--violet); line-height: 1.15; }
+  .fact p { margin: 4px 0 6px; font-size: 15px; }
+  .quote { margin: 14px 0 0; background: #fbf8f1; border-left: 6px solid var(--yellow); border-radius: 12px; padding: 12px 16px; font-size: 15px; }
+  .quote mark { background: #ffe1d2; border-radius: 4px; padding: 0 3px; }
+  /* 흐름 */
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .step { text-align: center; }
+  .step .ph { border: 7px solid var(--ink); border-radius: 26px; overflow: hidden; background: #fff; aspect-ratio: 390 / 780; box-shadow: 0 8px 20px rgba(35,38,58,.14); }
+  .step .ph img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .step h3 { margin: 10px 0 2px; font-size: 18px; }
+  .step h3 i { font-style: normal; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-family: "Noto Sans KR", sans-serif; font-size: 13px; margin-right: 6px; vertical-align: 2px; }
+  .step p { margin: 0; font-size: 13.5px; color: var(--soft); text-align: left; }
+  .who { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--yellow); margin-bottom: 4px; }
+  .who.kid { background: #cfe8ff; }
+  /* 기능 */
+  .feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .feat h3 { margin: 0 0 6px; font-size: 20px; }
+  .feat h3 i { font-style: normal; color: var(--violet); margin-right: 6px; }
+  .feat ul, .cols ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+  .feat li, .cols li { margin: 3px 0; }
+  /* 구조도 */
+  .map { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 26px; position: relative; }
+  .node { border-radius: 16px; padding: 10px 12px; font-size: 13.5px; position: relative; min-height: 96px; }
+  .node b { display: block; font-size: 14.5px; margin-bottom: 2px; }
+  .node .k { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 7px; margin-bottom: 4px; background: rgba(255,255,255,.7); }
+  .node.human { background: #fff1bf; } .node.kidn { background: #dcebff; } .node.ai { background: var(--violet-soft); outline: 2px solid var(--violet); } .node.rule { background: var(--green-soft); outline: 2px solid var(--green); } .node.ext { background: #efece6; }
+  .node::after { content: "→"; position: absolute; right: -21px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--soft); }
+  .node.end::after, .node:nth-child(4n)::after { content: ""; }
+  .node:nth-child(4n):not(.end)::before { content: "↓ 다음 줄로"; position: absolute; right: 8px; bottom: -3px; font-size: 10.5px; color: var(--soft); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 12px 0 0; font-size: 13px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 16px; height: 16px; border-radius: 5px; display: inline-block; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .cols h3 { margin: 0 0 6px; font-size: 19px; }
+  /* 비교 */
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--edge); vertical-align: top; }
+  th { font-size: 13px; color: var(--soft); font-weight: 700; }
+  td.me { background: var(--violet-soft); font-weight: 500; }
+  .yes { color: var(--green); font-weight: 700; } .no { color: #9a958b; }
+  .road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .road .card b { font-family: "Jua", sans-serif; font-weight: 400; font-size: 19px; }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; background: var(--green-soft); color: var(--green); margin-left: 6px; vertical-align: 2px; }
+  .pill.plan { background: #efece6; color: #6d6860; }
+  footer { padding: 26px 0 40px; font-size: 13px; color: var(--soft); }
+  footer p { margin: 4px 0; }
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; } .hero img { width: 150px; order: -1; } .hero h1 { font-size: 44px; }
+    .facts, .feats, .road, .cols { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: repeat(5, 62vw); overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; } .step { scroll-snap-align: start; }
+    .map { grid-template-columns: 1fr 1fr; } .node:nth-child(4n)::after { content: "→"; } .node:nth-child(2n)::after { content: ""; } .node:nth-child(4n):not(.end)::before { content: ""; }
+    table { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div>
+    <div class="meta">엘리스 AI 챌린지 2026 · 성인 부문 · 팀 잘챙겼조(김호연, 김동현)</div>
+    <h1>가방쏙</h1>
+    <div class="tag">가정통신문에서 가방까지. 엄마가 넣으면, 아이가 스스로 챙겨요.</div>
+    <p>가정통신문을 넣으면 <b>일정·준비물·가져오지 않는 것</b>이 정리되고, 통신문에 없는 것은 <b>추천</b>으로 따로 채우고, 아이가 <b>미션처럼 스스로</b> 가방을 싸요. 엄마는 결과를 보고 <b>칭찬 스티커</b>를 붙여요.</p>
+    <a class="btn" href="demo/">▶ 프로토타입 눌러 보기</a>
+    <a class="btn soft" href="#flow">화면으로 보기</a>
+    <a class="btn soft" href="https://github.com/kimble125/chaenggyeojwo-ai-bag-check" target="_blank" rel="noopener">코드</a>
+    <div class="meta">프로토타입은 설치·로그인 없이 이 브라우저 안에서 돌아요(예시 판: AI 모델을 부르지 않고 준비된 결과로 보여 줘요). 처음 열 때 10초쯤 걸려요.</div>
+  </div>
+  <img src="demo/app/mascot/ssok_hello.png" alt="가방쏙의 가방 친구 쏙이">
+</header>
+
+<section id="why">
+  <h2>왜 필요한가 <small>우리가 본 것</small></h2>
+  <p class="lead">현장체험학습 전날 저녁. 통신문의 준비물은 한 줄 쉼표 나열이고, 조건과 금지는 괄호나 다른 줄에 숨어 있어요.</p>
+  <div class="facts">
+    <div class="card fact"><b>19건 중 10건</b><p>한 줄로 쓴 준비물 줄이 <b>"… 등"</b>으로 끝났어요. 목록에 없는 것이 더 있다는 뜻이에요.</p><div class="src">초등학교 홈페이지에 올라온 가정통신문 23건을 팀이 직접 읽음(2026-11-19)</div></div>
+    <div class="card fact"><b>괄호 속 금지</b><p>"가져오지 마세요"는 준비물 줄의 괄호, ※ 줄, 다른 번호 항목에 흩어져 있었어요. 학교마다 달라서 그 통신문을 읽어야 해요.</p><div class="src">같은 23건. 예: 수경은 6곳에서 준비물, 1곳은 입장 제한</div></div>
+    <div class="card fact"><b>52.3%</b><p>초등 이하 자녀를 둔 아버지 524명 설문에서 "교육 준비물 파악·구입"은 <b>어머니가 맡는다</b>는 답이에요.</p><div class="src">인구보건복지협회 설문, <a href="https://news.ikbc.co.kr/%EC%82%AC%ED%9A%8C/article/view/kbc202611150050" target="_blank" rel="noopener">KBC 2026-11-15</a></div></div>
+  </div>
+  <div class="quote">실제 통신문의 한 줄: "3. 준비물 : 개인 도시락 , 간식 , 물 , 음료수 , 멀미약 , 비닐 봉투 <mark>( 장난감 등 불가 )</mark>" <span class="src">(<a href="https://www.goesn.kr/geumbit-e/na/ntt/selectNttInfo.do?mi=11070&nttSn=1926110" target="_blank" rel="noopener">성남 금빛초 게시글</a>)</span><br>
+  1학년 담임의 조언: "매일 밤 자기 전에 아이가 직접 다음 날의 준비물을 챙기고 가방에 넣도록" <span class="src">(<a href="https://www.busan.com/view/busan/view.php?code=2025031717054216508" target="_blank" rel="noopener">부산일보 2025-03-17</a>)</span> → 엄마가 다 해 주는 앱이 아니라 <b>아이가 하는 앱</b>으로 만들었어요.</div>
+  <p class="src" style="margin-top:8px">한계: 준비물을 빠뜨리는 빈도를 잰 숫자는 찾지 못했어요.</p>
+</section>
+
+<section id="flow">
+  <h2>어떻게 쓰나 <small>프로토타입 화면 그대로</small></h2>
+  <p class="lead">아이 화면이 주인공이고, 엄마 화면은 넣기·확인·칭찬만 해요.</p>
+  <div class="flow">
+    <div class="step"><div class="ph"><img src="assets/shots/1_notice.webp" alt="통신문을 넣으면 일정과 준비물이 정리된 화면" loading="lazy"></div><h3><i>1</i>통신문 넣기</h3><span class="who">엄마</span><p>링크·붙여넣기·사진으로 넣으면 행사일, 회신 마감, 준비물이 정리돼요. 확인하고 달력에 넣으면 알림이 걸려요.</p></div>
+    <div class="step"><div class="ph"><img src="assets/shots/2_ban_recs.webp" alt="가져오지 않는 것과 추천 준비물 화면" loading="lazy"></div><h3><i>2</i>금지·조건·추천</h3><span class="who">엄마</span><p>"가져오지 않는 것"이 통신문 문장과 함께 나와요. 추천은 통신문과 섞지 않고 근거를 붙여 따로 보여 줘요.</p></div>
+    <div class="step"><div class="ph"><img src="assets/shots/3_kid_lay.webp" alt="아이 화면: 준비물 카드를 펼쳐 놓는 화면" loading="lazy"></div><h3><i>3</i>아이 미션</h3><span class="who kid">아이</span><p>큰 카드와 읽어 주기. 추천을 고르고, 펼쳐서 사진을 찍으면 보인 것은 챙긴 것으로 쳐요.</p></div>
+    <div class="step"><div class="ph"><img src="assets/shots/5_kid_warn.webp" alt="아이 화면: 유리병은 두고 가자는 알림" loading="lazy"></div><h3><i>4</i>이건 두고 가자</h3><span class="who kid">아이</span><p>가져가면 안 되는 것이 보이면 통신문 문장과 함께 알려 줘요. 안 보인 것만 하나씩 직접 확인해요.</p></div>
+    <div class="step"><div class="ph"><img src="assets/shots/7_kid_done.webp" alt="아이 화면: 다 챙겼지" loading="lazy"></div><h3><i>5</i>다 챙겼지!</h3><span class="who kid">아이</span> <span class="who">엄마</span><p>다 넣었을 때만 "다 챙겼지!". 결과가 엄마 화면에 남고, 엄마는 칭찬 스티커를 붙여요.</p></div>
+  </div>
+</section>
+
+<section id="features">
+  <h2>핵심 기능 3가지</h2>
+  <p class="lead">세 가지 모두 프로토타입에서 눌러 볼 수 있어요.</p>
+  <div class="feats">
+    <div class="card feat"><h3><i>1</i>통신문 → 일정·준비물·금지</h3><ul><li>행사일과 회신 마감을 따로 일정으로</li><li>"가져오지 않는 것", 조건("플라스틱 물통"), "필요한 학생만", "우천 시"를 근거 줄과 함께</li><li>달력(MCP)에 넣고 전날 저녁·당일 아침 알림</li></ul></div>
+    <div class="card feat"><h3><i>2</i>"등"을 채우는 추천</h3><ul><li>비슷한 통신문에서 본 준비물, 날씨·미세먼지, 아이 특성, 우리 집 꼬리표</li><li>"비슷한 알림장 3건에서 봤어요"처럼 근거를 붙임</li><li>받아들인 것만 준비물 수에 들어가고, 금지된 것은 추천하지 않음</li></ul></div>
+    <div class="card feat"><h3><i>3</i>아이 스스로 챙기기 미션</h3><ul><li>사진으로 한 번에, 안 보인 것만 하나씩</li><li>금지물이 보이면 "이건 두고 가자"</li><li>엄마의 칭찬 스티커가 스티커판에 쌓임. 집에 와서는 "돌아오기" 확인</li></ul></div>
+  </div>
+</section>
+
+<section id="ai">
+  <h2>AI를 어디에 쓰나 <small>동작 구조도</small></h2>
+  <p class="lead">읽기와 보기는 AI가, 틀리면 곤란한 판단은 규칙 코드가 해요.</p>
+  <div class="card">
+    <div class="map" id="map">
+      <div class="node human"><span class="k">엄마</span><b>통신문 넣기</b>학교 홈페이지 링크, 붙여넣기, 종이 사진</div>
+      <div class="node ai"><span class="k">AI · Claude API</span><b>통신문 읽기</b>행사일, 회신 마감, 시간, 장소, 준비물을 정해진 틀로</div>
+      <div class="node rule"><span class="k">규칙 코드</span><b>금지·조건·"등" 찾기</b>"가져오지 않습니다 / 불가 / X", 괄호 조건. 통신문의 그 줄을 근거로</div>
+      <div class="node ext"><span class="k">캘린더(MCP) · 알림</span><b>달력에 넣기</b>전날 저녁, 당일 아침 알림. 말투 3가지</div>
+      <div class="node rule"><span class="k">규칙 코드 + Open-Meteo</span><b>추천 만들기</b>통신문 23건에서 본 준비물 + 날씨·미세먼지 + 아이 특성. 금지된 것은 뺌</div>
+      <div class="node kidn"><span class="k">아이</span><b>미션 시작</b>추천 고르기 → 준비물을 펼치고 사진 찍기</div>
+      <div class="node ai"><span class="k">AI · Claude API</span><b>사진 보기</b>무엇이 보이는지, 금지물이 보이는지. 애매하면 "안 보임"</div>
+      <div class="node rule"><span class="k">규칙 코드</span><b>세기와 판정</b>안 보인 것은 아이가 직접 확인. 다 넣었을 때만 "다 챙겼지"</div>
+      <div class="node human"><span class="k">엄마</span><b>확인과 칭찬</b>결과 한 줄, 칭찬 스티커와 한마디</div>
+      <div class="node kidn end"><span class="k">아이</span><b>돌아오기</b>집에 와서 가져간 것을 다시 확인</div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--violet-soft);outline:2px solid var(--violet)"></i>AI 모델이 하는 일(읽기·보기)</span>
+      <span><i style="background:var(--green-soft);outline:2px solid var(--green)"></i>규칙 코드가 하는 일(판단·세기)</span>
+      <span><i style="background:#fff1bf"></i>엄마</span><span><i style="background:#dcebff"></i>아이</span><span><i style="background:#efece6"></i>바깥 도구</span>
+    </div>
+  </div>
+  <div class="cols">
+    <div class="card"><h3>왜 이렇게 나눴나</h3><ul>
+      <li>사진을 보는 모델은 예상과 다른 사진에서 크게 틀려요(GPT-4V: 원본 79.6% → 편집 이미지 38.4%, <a href="https://arxiv.org/abs/2310.14566" target="_blank" rel="noopener">HallusionBench</a>). 빠뜨린 날의 사진이 바로 그런 사진이에요.</li>
+      <li>그래서 안 보인 것은 "없음"이 아니라 <b>아이가 직접 확인</b>으로 넘겨요.</li>
+      <li>금지, 조건, 개수처럼 틀리면 곤란한 것은 모델에게 묻지 않고 규칙으로 정해요. 규칙은 시험 48개로 묶어 뒀어요.</li>
+      <li>위 숫자는 논문의 시험 조건에서 나온 값이고 우리 사진으로 잰 값은 아니에요. 사진 확인의 정확도는 아직 재지 않았어요.</li></ul></div>
+    <div class="card"><h3>아이와 가족을 지키는 것</h3><ul>
+      <li>아이는 AI와 직접 대화하지 않아요. 화면의 말은 코드가 만들어요.</li>
+      <li>약과 "필요한 학생만" 준비물은 아이 화면에 나오지 않고 보호자가 정해요.</li>
+      <li>사진은 저장하지 않고 확인할 때만 AI로 보내요(AI 회사의 처리 정책은 따로 있어요). 통신문은 뽑아낸 일정·준비물과 근거 줄만 남겨요. 얼굴·이름표는 찍지 않게 안내해요.</li>
+      <li>로그인 없이 쓰고, 아이의 위치는 쓰지 않아요. 날씨는 정해 둔 동네의 예보만 봐요.</li></ul></div>
+  </div>
+</section>
+
+<section id="diff">
+  <h2>이미 있는 것과 다른 점</h2>
+  <p class="lead">스토어 설명과 화면 그림을 읽고 견준 것이에요(직접 써 보지는 않았어요). "없음"은 설명과 그림에서 찾지 못했다는 뜻이에요.</p>
+  <div class="card" style="overflow-x:auto">
+    <table>
+      <tr><th></th><th>준비물 체크리스트 앱<br><span class="src">예: 다 챙겼지?</span></th><th>날씨 알림 앱<br><span class="src">예: 챙겨줘, 우산</span></th><th>통신문·사진 대조 앱<br><span class="src">예: 리마인디, 준비물 체크</span></th><th>가방쏙</th></tr>
+      <tr><td>목록을 누가 만드나</td><td>어른이 직접, 템플릿</td><td class="no">목록 없음</td><td>통신문에서 뽑음</td><td class="me">통신문에서 뽑고 엄마가 확인</td></tr>
+      <tr><td>가져오지 않는 것·조건</td><td class="no">못 찾음</td><td class="no">못 찾음</td><td class="no">못 찾음</td><td class="me"><span class="yes">있음</span> · 통신문 문장을 근거로, 아이 화면까지</td></tr>
+      <tr><td>"등"을 채우는 추천</td><td class="no">못 찾음</td><td>날씨 정보까지</td><td class="no">못 찾음</td><td class="me"><span class="yes">있음</span> · 통신문과 섞지 않고 근거 건수를 붙임</td></tr>
+      <tr><td>누가 쓰나</td><td>어른 한 사람</td><td>어른 한 사람</td><td>아이용 화면은 못 찾음</td><td class="me">아이가 하고, 엄마가 보고 칭찬</td></tr>
+      <tr><td>가방 밖</td><td>외출 중 다시 점검</td><td class="no">해당 없음</td><td class="no">못 찾음</td><td class="me">집에 와서 "돌아오기"(있음), 수납 찾기(설계)</td></tr>
+    </table>
+  </div>
+  <p class="src" style="margin-top:8px">견준 앱: <a href="https://apps.apple.com/kr/app/id6759158687" target="_blank" rel="noopener">다 챙겼지?</a>, <a href="https://apps.apple.com/kr/app/id6747306772" target="_blank" rel="noopener">챙겨줘, 우산</a>, <a href="https://apps.apple.com/kr/app/id6803818418" target="_blank" rel="noopener">리마인디</a>, <a href="https://apps.apple.com/kr/app/id6811309237" target="_blank" rel="noopener">TurtleWiz 준비물 체크</a> (App Store, 2026-11-17–11-20 확인). 범용 AI 채팅에 통신문과 사진을 같이 주는 방법도 있어요. 가방쏙은 그 일을 아이가 혼자 할 수 있는 화면과 틀리기 어려운 규칙으로 바꾼 것이에요.</p>
+</section>
+
+<section id="road">
+  <h2>지금과 다음</h2>
+  <div class="road">
+    <div class="card"><b>넣기(가방)</b><span class="pill">프로토타입에 있음</span><p style="margin:6px 0 0;font-size:14.5px">통신문 → 달력 → 추천 → 아이 미션 → 엄마 칭찬. 통신문이 없는 평소 일정(학원, 체육)은 상황만 고르면 기본 준비물이 추천돼요.</p></div>
+    <div class="card"><b>돌아오기(귀가)</b><span class="pill">한 화면 있음</span><p style="margin:6px 0 0;font-size:14.5px">가져간 것 가운데 다시 가져와야 하는 것만 확인. 두고 온 것은 탓하지 않고 내일 할 일로. <a href="demo/app/design/uiux.html">화면 구조도</a></p></div>
+    <div class="card"><b>찾기(수납)</b><span class="pill plan">설계</span><p style="margin:6px 0 0;font-size:14.5px">수납장을 한 번 찍어 두면 못 찾은 물건의 자리를 알려 줘요. 나중에는 가방 친구 쏙이가 말을 거는 대화형 도우미로. <a href="demo/app/design/uiux.html">화면 구조도</a></p></div>
+  </div>
+</section>
+
+<footer>
+  <p><b>실제 판과 예시 판:</b> 실제 판(FastAPI + Claude API + MCP 캘린더)과 예시 판은 같은 화면과 같은 규칙 코드를 써요. 예시 판은 통신문을 규칙으로 읽고 사진 확인을 준비된 결과로 대신해요. 통신문과 일정은 지어낸 예시예요.</p>
+  <p><b>생성형 AI 활용 범위:</b> 서비스 안에서는 통신문 읽기와 사진 보기(Claude API). 만드는 과정에서는 조사·초안·코드·검토에 Claude와 GPT를 썼고 팀이 확인하고 고쳤어요. 마스코트 그림은 이미지 생성 AI로 만들었어요.</p>
+  <p>가방쏙 · 팀 잘챙겼조 · <a href="https://github.com/kimble125/chaenggyeojwo-ai-bag-check" target="_blank" rel="noopener">github.com/kimble125/chaenggyeojwo-ai-bag-check</a></p>
+</footer>
+
+</div>
+</body>
+</html>

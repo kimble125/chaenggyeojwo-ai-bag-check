@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="챙겼지 — 가정통신문 준비물 헬퍼", lifespan=lifespan)
+app = FastAPI(title="가방쏙 — 가정통신문 준비물 헬퍼", lifespan=lifespan)
 
 
 # ---------- 가정통신문 → 일정 ----------

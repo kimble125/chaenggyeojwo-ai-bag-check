@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""챙겼지 예시 서버: 설치 없이 도는 판(파이썬 표준 라이브러리만, 3.10 이상).
+"""가방쏙(옛 이름 챙겼지) 예시 서버: 설치 없이 도는 판(파이썬 표준 라이브러리만, 3.10 이상).
 
     python3 demo_server.py            # http://127.0.0.1:6111
     PORT=7000 python3 demo_server.py
@@ -9,7 +9,8 @@
   사진 확인은 '예시 결과'를 돌려준다(화면에 예시라고 적힌다). API 키가 필요 없다.
 - 캘린더 등록은 MCP 를 거치지 않고 같은 DB 에 바로 넣는다.
 - 날씨는 Open-Meteo 를 그대로 부른다(키 없음). 안 되면 날씨 없이 돈다.
-- 처음 켜면 지어낸 예시 일정 두 개를 넣는다(실제 학교 문서가 아니다).
+- 처음 켜면 지어낸 예시 일정을 넣는다(실제 학교 문서가 아니다).
+- 같은 주소표를 서버 없이 부르는 길(dispatch)이 있다. 브라우저 안에서 도는 판(build_site.py)과 시험이 쓴다.
 """
 from __future__ import annotations
 
@@ -378,13 +379,53 @@ ROUTES = [
 ]
 
 
-def main():
+# ---------- 소켓 없이 같은 주소표 부르기(브라우저 안 실행과 시험에서 쓴다) ----------
+class MemoryRequest:
+    """HTTP 요청 대신 넘기는 껍데기. 사진 파일은 이름만 받고 내용은 받지 않는다."""
+
+    def __init__(self, json_body=None, fields=None, files=None):
+        self._j, self._fields, self._files = json_body, dict(fields or {}), list(files or [])
+
+    def _body(self) -> bytes:
+        return b""
+
+    def _json(self) -> dict:
+        return self._j if isinstance(self._j, dict) else {}
+
+    def _form(self) -> tuple[dict, list]:
+        return self._fields, self._files
+
+
+def dispatch(method: str, path: str, query: dict | None = None, json_body=None, fields=None, files=None) -> tuple[int, object]:
+    """서버를 띄우지 않고 /api/ 주소를 부른다. (상태 번호, 돌려줄 값)을 준다."""
+    req = MemoryRequest(json_body, fields, files)
+    try:
+        for m, pattern, fn in ROUTES:
+            hit = re.fullmatch(pattern, path)
+            if m == method and hit and pattern.startswith("/api/"):
+                out = fn(req, query or {}, *hit.groups())
+                return (404, {"detail": "찾을 수 없어요"}) if out is None else (200, out)
+        return 404, {"detail": "없는 주소예요"}
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
+        return 400, {"detail": f"요청을 읽지 못했어요: {e}"}
+    except Exception as e:
+        return 500, {"detail": f"서버 오류: {type(e).__name__}"}
+
+
+def boot(reset: bool = False):
+    """저장소를 준비하고 예시 일정을 넣는다. reset 이면 처음 상태로 되돌린다."""
+    if reset and os.path.exists(db.DB_PATH):
+        os.remove(db.DB_PATH)
     db.init()
     service.init()
     seed()
+
+
+def main():
+    boot()
     port = int(os.environ.get("PORT", "6111"))
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"챙겼지 예시 서버: http://127.0.0.1:{port}  (끄려면 Ctrl+C) · DB {os.environ['DB_PATH']}", flush=True)
+    print(f"가방쏙 예시 서버: http://127.0.0.1:{port}  (끄려면 Ctrl+C) · DB {os.environ['DB_PATH']}", flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

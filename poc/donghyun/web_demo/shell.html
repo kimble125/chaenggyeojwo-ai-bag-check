@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff6e9">
+<title>가방쏙 · 눌러 보는 프로토타입(예시 판)</title>
+<meta name="description" content="가정통신문에서 가방까지: 엄마가 통신문을 넣으면 아이가 스스로 가방을 싸는 가방쏙의 프로토타입. 서버 없이 이 브라우저 안에서 돕니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#fff6e9; --paper:#fff; --ink:#23263a; --soft:#6b6a75; --edge:#eadcc5; --violet:#7c5cff; --violet-soft:#efeaff; --yellow:#ffd76a; color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: "Noto Sans KR", system-ui, sans-serif; line-height: 1.5; }
+  h1, h2, .jua { font-family: "Jua", "Noto Sans KR", sans-serif; font-weight: 400; }
+  a { color: inherit; }
+  .top { display: flex; align-items: center; gap: 12px; padding: 12px 20px 6px; flex-wrap: wrap; }
+  .top img { width: 56px; height: 56px; object-fit: contain; }
+  .top h1 { margin: 0; font-size: 26px; color: var(--violet); line-height: 1.1; }
+  .top h1 small { font-family: "Noto Sans KR", sans-serif; font-size: 13px; color: var(--soft); font-weight: 500; margin-left: 6px; }
+  .top p { margin: 2px 0 0; font-size: 14px; color: var(--soft); }
+  .top nav { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill { border: 0; background: var(--paper); box-shadow: 0 3px 0 var(--edge); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer; text-decoration: none; color: var(--ink); }
+  .pill:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
+  .mode { margin: 4px 20px 10px; padding: 8px 14px; background: var(--violet-soft); border-radius: 14px; font-size: 13.5px; }
+  .mode b { color: #4a35c9; }
+  main { display: grid; grid-template-columns: minmax(280px, 340px) 1fr; gap: 18px; padding: 0 20px 18px; align-items: start; }
+  .guide { background: var(--paper); border-radius: 22px; box-shadow: 0 4px 0 var(--edge); padding: 16px 16px 10px; position: sticky; top: 10px; }
+  .guide h2 { margin: 0 0 2px; font-size: 21px; }
+  .guide > p { margin: 0 0 10px; font-size: 13.5px; color: var(--soft); }
+  .step { border: 2px solid transparent; border-radius: 16px; padding: 10px 10px 10px 12px; margin: 0 -4px 6px; background: #fbf8f1; }
+  .step.on { border-color: var(--violet); background: var(--violet-soft); }
+  .step h3 { margin: 0; font-size: 15.5px; display: flex; gap: 8px; align-items: center; }
+  .step h3 i { font-style: normal; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 13px; display: grid; place-items: center; }
+  .step .who { margin-left: auto; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--yellow); white-space: nowrap; }
+  .step .who.kid { background: #cfe8ff; }
+  .step p { margin: 6px 0 8px; font-size: 13.5px; color: #3d3f52; }
+  .step p b { background: #fff; border-radius: 6px; padding: 0 4px; white-space: nowrap; }
+  .step button { border: 0; border-radius: 12px; background: var(--ink); color: #fff; font: inherit; font-size: 13.5px; padding: 7px 12px; cursor: pointer; box-shadow: 0 3px 0 #0c0e19; }
+  .step button:active { transform: translateY(2px); box-shadow: 0 1px 0 #0c0e19; }
+  .phones { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+  .phone { width: 390px; max-width: 100%; }
+  .phone .label { display: flex; align-items: center; gap: 8px; font-family: "Jua", sans-serif; font-size: 18px; margin: 0 0 6px 10px; }
+  .phone .label span { font-family: "Noto Sans KR", sans-serif; font-size: 12.5px; color: var(--soft); }
+  .phone .frame { border: 10px solid var(--ink); border-radius: 38px; overflow: hidden; background: #fff; height: clamp(540px, calc(100vh - 205px), 800px); box-shadow: 0 10px 30px rgba(35,38,58,.18); }
+  .phone iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+  .tabs { display: none; }
+  .foot { padding: 4px 20px 22px; font-size: 12.5px; color: var(--soft); text-align: center; }
+  #loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 10; text-align: center; padding: 24px; }
+  #loading img { width: 150px; animation: bob 1.1s ease-in-out infinite alternate; }
+  #loading h2 { margin: 10px 0 4px; font-size: 26px; color: var(--violet); }
+  #loading p { margin: 0; color: var(--soft); font-size: 14.5px; }
+  #loading .fail { max-width: 460px; }
+  #loading .fail a { display: inline-block; margin-top: 12px; }
+  @keyframes bob { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-12px) rotate(3deg); } }
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 14px; font-size: 14px; z-index: 11; }
+  [hidden] { display: none !important; }
+  @media (max-width: 1180px) { main { grid-template-columns: 300px 1fr; } .phones { gap: 14px; } .phone { width: 350px; } }
+  @media (max-width: 1040px) {
+    main { display: block; padding: 0 12px 12px; }
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 12px 10px; }
+    .tabs button { border: 0; border-radius: 12px; padding: 9px 4px; font: inherit; font-size: 14px; background: var(--paper); box-shadow: 0 3px 0 var(--edge); cursor: pointer; }
+    .tabs button.on { background: var(--ink); color: #fff; box-shadow: 0 3px 0 #0c0e19; }
+    .guide { position: static; }
+    body[data-pane="parent"] .guide, body[data-pane="kid"] .guide { display: none; }
+    body[data-pane="guide"] .phones { display: none; }
+    body[data-pane="parent"] .phone[data-who="kid"], body[data-pane="kid"] .phone[data-who="parent"] { display: none; }
+    .phone { width: 100%; max-width: 430px; margin: 0 auto; }
+    .phone .frame { height: calc(100dvh - 215px); min-height: 480px; }
+    .top { padding: 10px 12px 4px; } .mode { margin: 4px 12px 8px; } .top h1 { font-size: 22px; } .top img { width: 44px; height: 44px; }
+  }
+</style>
+</head>
+<body data-pane="guide">
+<header class="top">
+  <img src="app/mascot/ssok_hello.png" alt="가방쏙의 가방 친구 쏙이">
+  <div>
+    <h1>가방쏙 <small>눌러 보는 프로토타입 · 예시 판</small></h1>
+    <p>가정통신문에서 가방까지. 엄마가 통신문을 넣으면, 아이가 스스로 챙겨요.</p>
+  </div>
+  <nav>
+    <a class="pill" href="../index.html">한눈에 보기</a>
+    <a class="pill" href="https://github.com/kimble125/chaenggyeojwo-ai-bag-check" target="_blank" rel="noopener">코드(GitHub)</a>
+    <button class="pill" id="reset">↺ 처음으로</button>
+  </nav>
+</header>
+<p class="mode"><b>예시 판이에요.</b> AI 모델을 부르지 않고, 통신문은 규칙으로 읽고 사진 확인은 준비된 결과로 보여 줘요. 누른 것은 이 브라우저 안에만 남고 새로 고치면 처음으로 돌아가요. 통신문과 일정은 지어낸 예시예요. <b>실제 판</b>은 같은 화면과 같은 규칙 코드에, 통신문과 사진을 읽는 일만 Claude API가 맡아요.</p>
+
+<div class="tabs" role="tablist">
+  <button data-pane="guide" class="on">① 둘러보기</button>
+  <button data-pane="parent">엄마 화면</button>
+  <button data-pane="kid">아이 화면</button>
+</div>
+
+<main>
+  <aside class="guide">
+    <h2>1분 둘러보기</h2>
+    <p>차례대로 눌러 보세요. 아이 화면에서 한 일이 엄마 화면에 바로 남아요.</p>
+    <div id="steps"></div>
+  </aside>
+  <section class="phones">
+    <div class="phone" data-who="parent">
+      <div class="label">엄마 화면 <span>통신문 넣기 · 확인 · 칭찬</span></div>
+      <div class="frame"><iframe id="f-parent" name="parent" title="엄마 화면"></iframe></div>
+    </div>
+    <div class="phone" data-who="kid">
+      <div class="label">아이 화면 <span>스스로 챙기기 미션</span></div>
+      <div class="frame"><iframe id="f-kid" name="kid" title="아이 화면"></iframe></div>
+    </div>
+  </section>
+</main>
+<p class="foot">가방쏙 · 팀 잘챙겼조 · 엘리스 AI 챌린지 2026 · 이 페이지는 계산 코드(파이썬)를 브라우저 안에서 그대로 돌려요(Pyodide). 서버로 보내는 것은 날씨 예보 요청(Open-Meteo)뿐이에요.</p>
+
+<div id="loading">
+  <div>
+    <img src="app/mascot/ssok_look.png" alt="">
+    <h2>가방 여는 중…</h2>
+    <p id="stage">준비하고 있어요</p>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
+const frames = { parent: $("#f-parent"), kid: $("#f-kid") };
+let startPy = null, callPy = null, eventId = 1;
+
+const STEPS = [
+  { who: "엄마", title: "통신문을 넣어요",
+    text: "아래 <b>＋ 통신문</b>에서 <b>예시 통신문 넣기</b> → <b>AI로 일정·준비물 뽑기</b> → <b>캘린더에 넣기</b>. 일정, 준비물, 회신 마감이 따로 정리돼요.",
+    go: () => inParent((w) => w.document.querySelector('.tabbar [data-view="add"]').click()) },
+  { who: "엄마", title: "숨은 조건과 금지를 찾아요",
+    text: "일정을 열면 <b>가져오지 않는 것</b>이 통신문 문장과 함께 나와요. <b>추천 준비물</b>은 통신문에 적힌 것과 섞지 않고 근거를 붙여 따로 보여 줘요.",
+    go: () => inParent((w) => w.openSheet(eventId)) },
+  { who: "아이", title: "아이가 스스로 챙겨요",
+    text: "<b>이것도 챙길까?</b>에서 추천을 고르고, <b>유리병이 있음</b> 예시 사진을 눌러 보세요. 가져가면 안 되는 것을 알려 주고, 안 보인 것만 하나씩 확인해요.",
+    go: () => openKid(`kid.html?e=${eventId}`) },
+  { who: "엄마", title: "엄마는 보고 칭찬해요",
+    text: "아이가 <b>엄마에게 보여 주기</b>를 누르면 결과가 남아요. 일정에서 <b>칭찬 스티커</b>를 붙이면 아이의 스티커판(⭐)에 쌓여요.",
+    go: () => inParent((w) => w.openSheet(eventId).then(() => setTimeout(() => w.document.querySelector("#sheet [data-stk]")?.scrollIntoView({ block: "center" }), 300))) },
+  { who: "아이", title: "집에 와서 다시 확인해요",
+    text: "다녀온 뒤에는 가져간 것 가운데 <b>다시 가져와야 하는 것</b>만 물어봐요. 도시락 속 음식이나 물티슈처럼 쓰고 없어지는 것은 빼요.",
+    go: () => openKid(`kid.html?e=${eventId}&mode=home`) },
+];
+
+function toast(msg, ms = 2600) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), ms); }
+function showPane(p) { document.body.dataset.pane = p; $$(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.pane === p)); }
+function openKid(href) { frames.kid.src = "app/" + href; showPane("kid"); }
+function inParent(fn) {
+  showPane("parent");
+  const run = () => { try { fn(frames.parent.contentWindow); } catch (e) { console.error(e); toast("엄마 화면이 아직 준비 중이에요. 다시 눌러 주세요"); } };
+  const w = frames.parent.contentWindow;
+  if (w && w.document.readyState === "complete" && typeof w.openSheet === "function") run();
+  else { frames.parent.addEventListener("load", () => setTimeout(run, 400), { once: true }); if (!frames.parent.src) frames.parent.src = "app/parent.html"; }
+}
+
+window.chaengLink = (href) => {
+  if (!href) return false;
+  if (href.startsWith("kid.html")) { openKid(href); return true; }
+  if (href.startsWith("parent.html")) { showPane("parent"); try { frames.parent.contentWindow.location.reload(); } catch {} return true; }
+  return false;
+};
+
+function renderSteps() {
+  $("#steps").innerHTML = STEPS.map((s, i) => `<div class="step" data-i="${i}"><h3><i>${i + 1}</i>${s.title}<span class="who ${s.who === "아이" ? "kid" : ""}">${s.who} 화면</span></h3><p>${s.text}</p><button data-go="${i}">${s.who} 화면에서 보기 ›</button></div>`).join("");
+  $$("#steps [data-go]").forEach((b) => b.addEventListener("click", () => {
+    const i = +b.dataset.go;
+    $$(".step").forEach((el) => el.classList.toggle("on", +el.dataset.i === i));
+    STEPS[i].go();
+  }));
+}
+
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("스크립트를 못 받았어요: " + src)); document.head.appendChild(s); }); }
+async function probeWeather() {
+  try {
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=37.38&longitude=127.12&daily=weather_code&forecast_days=1&timezone=Asia%2FSeoul", { signal: AbortSignal.timeout(3500) });
+    return r.ok;
+  } catch { return false; }
+}
+const stage = (t) => ($("#stage").textContent = t);
+function fail(e) {
+  console.error(e);
+  $("#loading").innerHTML = `<div class="fail"><img src="app/mascot/ssok_no.png" alt="" style="animation:none"><h2>여기서는 열지 못했어요</h2>
+    <p>이 브라우저나 네트워크에서 프로토타입 실행 도구(Pyodide)를 받지 못했어요. 화면과 흐름은 <b>한눈에 보기</b>에서 그림으로 볼 수 있어요.</p>
+    <a class="pill" href="../index.html">한눈에 보기로 가기</a> <button class="pill" onclick="location.reload()">다시 해 보기</button>
+    <p style="margin-top:10px;font-size:12px">${String(e && e.message || e).replace(/[<>&]/g, "")}</p></div>`;
+}
+
+async function boot() {
+  const slow = setTimeout(() => stage("조금 더 걸리고 있어요. 네트워크가 느리면 30초쯤 걸릴 수 있어요"), 12000);
+  try {
+    stage("파이썬 여는 중… 처음에는 10초쯤 걸려요");
+    const [, online, src, bootCode] = await Promise.all([
+      loadScript(PYODIDE + "pyodide.js"), probeWeather(),
+      fetch("pysrc.json").then((r) => { if (!r.ok) throw new Error("pysrc.json " + r.status); return r.json(); }),
+      fetch("boot.py").then((r) => { if (!r.ok) throw new Error("boot.py " + r.status); return r.text(); }),
+    ]);
+    const py = await loadPyodide({ indexURL: PYODIDE });
+    stage("가방쏙 코드 읽는 중…");
+    await py.loadPackage("sqlite3");
+    for (const [path, text] of Object.entries(src)) {
+      const full = "/chaeng/" + path;
+      py.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
+      py.FS.writeFile(full, text);
+    }
+    py.FS.mkdirTree("/data");
+    py.globals.set("WEATHER_ONLINE", online);
+    stage("예시 일정 넣는 중…");
+    py.runPython(bootCode);
+    startPy = py.globals.get("start"); callPy = py.globals.get("call");
+    startPy(false);
+    window.chaengApi = (method, url, json, fields, files) => {
+      const u = new URL(url, "http://local");
+      return JSON.parse(callPy(method, u.pathname, JSON.stringify(Object.fromEntries(u.searchParams)), json || "", fields || "", files || 0));
+    };
+    const evs = window.chaengApi("GET", "/api/events")[1];
+    eventId = (evs.find((e) => e.kind !== "deadline" && e.items.length) || evs[0]).id;
+    frames.parent.src = "app/parent.html";
+    frames.kid.src = `app/kid.html?e=${eventId}`;
+    clearTimeout(slow);
+    $("#loading").hidden = true;
+    if (!online) toast("날씨 서버에 닿지 않아 '시연용 가정' 날씨로 보여 줘요", 4500);
+  } catch (e) { clearTimeout(slow); fail(e); }
+}
+
+$("#reset").addEventListener("click", () => {
+  if (!startPy) return;
+  startPy(true);
+  frames.parent.src = "app/parent.html"; frames.kid.src = `app/kid.html?e=${eventId}`;
+  $$(".step").forEach((el) => el.classList.remove("on"));
+  toast("처음 상태로 돌렸어요");
+});
+$$(".tabs button").forEach((b) => b.addEventListener("click", () => showPane(b.dataset.pane)));
+renderSteps();
+boot();
+</script>
+</body>
+</html>
