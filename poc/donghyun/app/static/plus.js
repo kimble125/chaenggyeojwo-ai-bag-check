@@ -11,10 +11,13 @@
 
   // 캘린더에 넣은 직후, 같은 통신문 글로 금지·조건을 뽑아 붙인다(글은 서버에 저장하지 않는다)
   api = async function (path, opt = {}) {
-    const text = path === "/api/notice/commit" ? (fetched?.text || $("#textIn").value || "") : null;
+    // 글이 없으면(사진 통신문) 추출 결과의 메모를 대신 쓴다. 추출 지시가 금지 문장을 메모에 옮기게 돼 있다
+    const text = path === "/api/notice/commit" ? (fetched?.text || $("#textIn").value || (opt.body?.events || []).map((e) => e.notes || "").join("\n")) : null;
     const r = await baseApi(path, opt);
     if (text !== null && MODE && r.created) {
-      for (const c of r.created) { try { await plusApi(`/events/${c.id}/analyze`, { method: "POST", body: { text } }); } catch {} }
+      let failed = 0;
+      for (const c of r.created) { try { await plusApi(`/events/${c.id}/analyze`, { method: "POST", body: { text } }); } catch { failed++; } }
+      if (failed) setTimeout(() => toast("일정은 넣었지만 금지·조건 표시를 붙이지 못했어요.\n일정을 열어 '통신문 글로 다시 확인'을 눌러 주세요.", 6000), 2800);
     }
     return r;
   };
@@ -42,6 +45,9 @@
       else if (m.conditional === "rain") notes.push(it.optional ? "비 올 때만(지금은 비 소식 없음)" : "비 소식이 있어 챙겨요");
       else if (m.optional_by_notice) notes.push("통신문에 '선택'이라고 적혀 있어요");
       if (m.kind === "wear") notes.push("입고 가는 것");
+      if (m.quantity) notes.push(`수량: ${m.quantity}`);
+      if (it.blocked) notes.push("통신문이 가져오지 말라고 한 것과 겹쳐 아이 화면에는 안 나와요");
+      if (it.conflict) notes.push("⚠️ 통신문의 '가져오지 않는 것'과 겹쳐요. 확인해 주세요");
       nm.insertAdjacentHTML("beforeend", notes.map((n) => `<span class="why">${esc(n)}</span>`).join(""));
     }
     // 근거 줄은 한 번만(같은 줄이 항목마다 되풀이되지 않게)
@@ -51,13 +57,13 @@
     const ban = p.forbidden.length ? `<div class="card plus"><strong>가져오지 않는 것</strong>
       <ul class="banlist">${p.forbidden.map((f) => `<li><b>🙅 ${esc(f.name)}</b>${f.removed ? ' <span class="badge">아이가 뺐다고 함</span>' : ""}<span class="why">통신문: “${esc(f.evidence)}”</span></li>`).join("")}</ul>
       ${p.not_needed.length ? `<p class="hint">안 가져가도 되는 것: ${p.not_needed.map((f) => esc(f.name)).join(", ")}</p>` : ""}</div>`
-      : p.often_forbidden.length ? `<div class="card plus"><p class="hint">이 통신문에서는 금지 문구를 못 찾았어요. 비슷한 행사에서는 <b>${p.often_forbidden.map(esc).join(", ")}</b>을(를) 막는 학교가 있었어요. 통신문을 한 번 더 확인해 주세요.</p></div>` : "";
+      : !p.analyzed ? "" : p.often_forbidden.length ? `<div class="card plus"><p class="hint">이 통신문에서는 금지 문구를 못 찾았어요. 비슷한 행사에서는 <b>${p.often_forbidden.map(esc).join(", ")}</b>을(를) 막는 학교가 있었어요. 통신문을 한 번 더 확인해 주세요.</p></div>` : "";
     const recs = (p.recs.length || p.guardian_recs.length) ? `<div class="card plus"><strong>추천 준비물</strong>
       <p class="hint">${p.list_open ? "통신문 목록이 '등'으로 끝나요. " : ""}통신문에 없는 것은 추천으로 따로 보여 드려요${p.scenario ? ` · 상황: ${esc(p.scenario.name)}` : ""}. 받아들인 것만 준비물 수에 들어가요.</p>
-      <div class="chips">${p.recs.map((r) => `<span class="chip rec" title="${esc(r.why)}">${r.emoji} ${esc(r.name)} <small>${esc(r.basis)}</small>
+      <div class="chips">${p.recs.map((r) => `<span class="chip rec" title="${esc(r.why)}">${esc(r.emoji)} ${esc(r.name)} <small>${esc(r.basis)}</small>
         <button data-acc="${esc(r.name)}" aria-label="${esc(r.name)} 넣기">＋</button><button data-dec="${esc(r.name)}" aria-label="${esc(r.name)} 빼기">✕</button></span>`).join("")}</div>
-      ${p.guardian_recs.length ? `<p class="hint"><b>보호자가 정해요:</b> ${p.guardian_recs.map((r) => `${r.emoji} ${esc(r.name)} <button class="ghost small" data-acc="${esc(r.name)}">넣기</button>`).join(" ")}<br>약은 아이 화면에 추천으로 나오지 않아요.</p>` : ""}</div>` : "";
-    const stickerRow = MODE.stickers.map((x) => `<button data-stk="${x}" aria-label="칭찬 스티커 ${x}">${x}</button>`).join("");
+      ${p.guardian_recs.length ? `<p class="hint"><b>보호자가 정해요:</b> ${p.guardian_recs.map((r) => `${esc(r.emoji)} ${esc(r.name)} <button class="ghost small" data-acc="${esc(r.name)}">넣기</button>`).join(" ")}<br>약은 넣어도 아이 화면에는 나오지 않아요.</p>` : ""}</div>` : "";
+    const stickerRow = MODE.stickers.map((x) => `<button data-stk="${esc(x)}" aria-label="칭찬 스티커 ${esc(x)}">${esc(x)}</button>`).join("");
     const result = v.kind !== "deadline" && v.items.length ? `<div class="card plus"><strong>아이 미션</strong>
       <p class="sum">준비물 ${s.counted} · 넣음 ${s.packed} · 아직 ${s.left.length}${s.left.length ? ` (${s.left.map(esc).join(", ")})` : ""}${s.optional ? ` · 추천 ${s.optional} 중 ${s.optional_packed}` : ""}${s.open_alerts.length ? ` · 빼야 할 것 ${s.open_alerts.map(esc).join(", ")}` : ""}</p>
       <div class="stk-row">${stickerRow}</div>
@@ -66,9 +72,17 @@
       <div class="actions"><a class="ghost small" href="/kid?e=${v.id}&mode=home">🏠 집에 와서 가방 확인(돌아오기)</a>
         <button class="ghost small" id="toneBtn">달력에 넣는 말투 보기</button></div>
       <div id="toneBox"></div></div>` : "";
+    const redo = v.kind !== "deadline" && !p.analyzed && v.items.some((i) => i.source === "notice") ? `<div class="card plus"><strong>금지·조건을 아직 확인하지 못했어요</strong>
+      <p class="hint">통신문 글을 붙여 넣으면 가져오지 않는 것과 조건을 다시 찾아요. 글은 저장하지 않아요.</p>
+      <textarea id="redoText" rows="4" placeholder="통신문 글"></textarea><button class="ghost small" id="redoBtn">통신문 글로 다시 확인</button></div>` : "";
     const anchor = $("#sheet .kid-cta") || $("#sheet .actions:last-of-type");
     $("#sheet").querySelectorAll(".plus").forEach((x) => x.remove());
-    anchor.insertAdjacentHTML("beforebegin", ban + recs + result);
+    anchor.insertAdjacentHTML("beforebegin", redo + ban + recs + result);
+    $("#redoBtn")?.addEventListener("click", async () => {
+      const text = $("#redoText").value.trim();
+      if (!text) return toast("통신문 글을 붙여 넣어 주세요");
+      try { await plusApi(`/events/${id}/analyze`, { method: "POST", body: { text } }); openSheet(id); } catch (e) { toast("⚠️ " + e.message); }
+    });
     $$("#sheet [data-acc]").forEach((b) => b.addEventListener("click", async () => { await plusApi(`/events/${id}/recs/accept`, { method: "POST", body: { name: b.dataset.acc } }); openSheet(id); }));
     $$("#sheet [data-dec]").forEach((b) => b.addEventListener("click", async () => { await plusApi(`/events/${id}/recs/decline`, { method: "POST", body: { name: b.dataset.dec } }); openSheet(id); }));
     $$("#sheet [data-stk]").forEach((b) => b.addEventListener("click", async () => {
@@ -90,7 +104,7 @@
       <p class="hint">추천에만 써요. 이름은 별명이면 돼요.</p>
       <div class="row2"><label class="lbl">이름(별명)<input id="pfName" maxlength="12"></label>
         <label class="lbl">학년<input id="pfGrade" inputmode="numeric" maxlength="1"></label></div>
-      <div class="traits" id="pfTraits">${MODE.traits.map((t) => `<label><input type="checkbox" value="${t.id}"> ${esc(t.label)}</label>`).join("")}</div>
+      <div class="traits" id="pfTraits">${MODE.traits.map((t) => `<label><input type="checkbox" value="${esc(t.id)}"> ${esc(t.label)}</label>`).join("")}</div>
       <label class="lbl">항상 챙기는 것(꼬리표, 쉼표로)<input id="pfAlways" placeholder="예: 교통카드, 지갑"></label>
       <label class="lbl">알림 말투<select id="pfTone"><option value="basic">보통</option><option value="cute">귀엽게</option><option value="neat">또박또박</option></select></label>`);
     $("#settingsBtn").addEventListener("click", async () => {
@@ -112,7 +126,7 @@
     const list = await plusApi("/scenarios");
     $("#preview").insertAdjacentHTML("beforebegin", `<div class="card" id="quickCard"><strong>알림장 없는 평소 일정</strong>
       <p class="hint">상황을 고르면 기본 준비물이 추천으로 들어가요. 빼거나 더할 수 있어요.</p>
-      <div class="row2"><label class="lbl">상황<select id="qScenario">${list.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></label>
+      <div class="row2"><label class="lbl">상황<select id="qScenario">${list.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("")}</select></label>
         <label class="lbl">날짜<input type="date" id="qDate" value="${ymd(new Date(Date.now() + 86400000))}"></label></div>
       <button class="ghost" id="qAdd">추천 준비물로 일정 만들기</button></div>`);
     $("#qScenario").value = "swim_academy";

@@ -68,7 +68,10 @@ def event(eid: int):
 @router.post("/events/{eid}/analyze")
 def analyze(eid: int, body: dict):
     """알림장 글에서 금지·조건·근거를 뽑아 붙인다. 글은 저장하지 않는다."""
-    return _need(service.analyze(eid, str(body.get("text") or "")[:MAX_TEXT]))
+    text = str(body.get("text") or "")
+    if len(text) > MAX_TEXT:
+        raise HTTPException(413, "통신문 글이 너무 길어요(2만 자까지)")
+    return _need(service.analyze(eid, text))
 
 
 @router.post("/events/{eid}/recs/accept")
@@ -90,7 +93,9 @@ def alerts(eid: int, body: dict):
 async def photo_check(eid: int, image: UploadFile = File(...)):
     """펼친 준비물 사진 확인. 입고 가는 것·내는 것·조건부 준비물은 사진으로 묻지 않고 직접 확인으로 돌린다."""
     v = _need(service.view(eid))
-    data = await image.read()
+    if (getattr(image, "size", None) or 0) > MAX_IMAGE:
+        raise HTTPException(413, "사진이 너무 커요(8MB까지)")
+    data = await image.read(MAX_IMAGE + 1)
     if len(data) > MAX_IMAGE:
         raise HTTPException(413, "사진이 너무 커요(8MB까지)")
     if not (image.content_type or "").startswith("image/"):
@@ -100,7 +105,7 @@ async def photo_check(eid: int, image: UploadFile = File(...)):
     if used >= DAILY_AI_CAP:
         raise HTTPException(429, "오늘 사진 확인 횟수를 다 썼어요. 하나씩 확인해 주세요")
     service._kv_set(used_key, used + 1)
-    todo = [i for i in v["items"] if not i["checked"]]
+    todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"]]
     ask = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")]
     rest = [i for i in todo if i not in ask]
     ban = [f["name"] for f in v["plus"]["forbidden"]]
@@ -110,8 +115,8 @@ async def photo_check(eid: int, image: UploadFile = File(...)):
             [{"name": i["meta"].get("base") or i["name"], "condition": i["meta"].get("condition"),
               "not_accepted": i["meta"].get("not_accepted")} for i in ask],
             ban, image.content_type or "image/jpeg", data)
-    except Exception:
-        log.exception("photo-check plus")              # 사진·목록 내용은 기록하지 않는다
+    except Exception as e:
+        log.error("photo-check plus failed: %s", type(e).__name__)   # 오류 종류만 남긴다(사진·목록·응답 글은 기록하지 않음)
         raise HTTPException(502, "사진 확인을 못 했어요. 하나씩 확인해 주세요")
     service.flag_forbidden(eid, r["forbidden_seen"])
     return {"seen": [ask[i]["id"] for i in r["seen"]],
@@ -139,7 +144,9 @@ def return_get(eid: int):
 
 @router.post("/events/{eid}/return")
 def return_set(eid: int, body: dict):
-    return _need(service.set_returned(eid, int(body.get("item_id")), bool(body.get("returned", True))))
+    if not isinstance(body.get("item_id"), int) or not isinstance(body.get("returned", True), bool):
+        raise HTTPException(400, "item_id 는 숫자, returned 는 true/false 로 보내 주세요")
+    return _need(service.set_returned(eid, body["item_id"], body.get("returned", True)))
 
 
 @router.post("/events/{eid}/return/report")

@@ -65,9 +65,17 @@ def split_items(chunk: str) -> list[str]:
     return items
 
 
-def _date(m: re.Match, base: Date) -> Date:
-    d = Date(base.year, int(m.group(1)), int(m.group(2)))
-    return d.replace(year=base.year + 1) if (base - d).days > 60 else d
+def _date(m: re.Match, base: Date) -> Date | None:
+    """'11월 20일' 또는 '2026년 11월 20일' → 날짜. 적힌 연도가 있으면 그대로, 없으면 기준일에서 가까운 앞날. 없는 날짜면 None."""
+    year, month, day = m.group(1), int(m.group(2)), int(m.group(3))
+    for y in ([int(year)] if year else [base.year, base.year + 1]):
+        try:
+            d = Date(y, month, day)
+        except ValueError:
+            continue
+        if year or (base - d).days <= 60:
+            return d
+    return None
 
 
 def extract(text: str, title: str | None = None, posted: str | None = None, today: Date | None = None) -> dict:
@@ -84,10 +92,10 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
         m = re.search(r"(?:내일은|내일|오늘은)\s*([가-힣 ]{2,14}?)\s*(?:입니다|이에요|예요|가는 날)", text)
         if m:
             ttl = (ttl.replace("알림장", "").strip() + " " + m.group(1).strip()).strip()
-    md = re.compile(r"(\d{1,2})월\s*(\d{1,2})일")
+    md = re.compile(r"(?:(\d{4})년\s*)?(\d{1,2})월\s*(\d{1,2})일")
     notes, when, start, end, loc = [], None, None, None, None
     for l in lines:
-        if re.search(r"일시|날짜|언제", l) and md.search(l):
+        if re.search(r"일시|날짜|언제", l) and md.search(l) and not when:
             when = _date(md.search(l), base)
             t = re.search(r"(\d{1,2}):(\d{2})\s*[–\-~]\s*(\d{1,2}):(\d{2})", l)
             if t:
@@ -97,7 +105,7 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
                 if t:
                     start = f"{int(t.group(1)):02d}:{int(t.group(2) or 0):02d}"
         if re.match(r"^[\d.\s]*장소", l):
-            loc = re.split(r"[:：]", l, 1)[-1].strip()
+            loc = re.split(r"[:：]", l, maxsplit=1)[-1].strip()
         if re.search(r"유의|주의|※|비가 오면", l) and not re.match(r"^[\d.\s]*(준비물|선택)", l) and len(notes) < 3:
             notes.append(re.sub(r"^[\d.\s]*", "", l))
     if not when:
@@ -105,15 +113,16 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
             when = base + timedelta(days=1)
         else:
             m = next((md.search(l) for l in lines if md.search(l) and not re.search(r"까지|제출|회신", l)), None)
-            when = _date(m, base) if m else base + timedelta(days=1)
-            if not m:
-                notes.append("날짜를 못 찾아 내일로 넣었어요. 확인해 주세요.")
+            when = _date(m, base) if m else None
+    if not when:
+        when = base + timedelta(days=1)
+        notes.append("날짜를 못 찾아 내일로 넣었어요. 확인해 주세요.")
     items: list[str] = []
     for l in lines:
         if re.match(r"^[\d.\s]*(준비물|챙길 것|지참물)", l):
-            items += split_items(re.split(r"[:：]", l, 1)[-1])
+            items += split_items(re.split(r"[:：]", l, maxsplit=1)[-1])
         elif re.match(r"^[\d.\s]*선택\s*[:：]", l):
-            items += [f"{x}(선택)" for x in split_items(re.split(r"[:：]", l, 1)[-1])]
+            items += [f"{x}(선택)" for x in split_items(re.split(r"[:：]", l, maxsplit=1)[-1])]
     for l in lines:                                   # '체육복 입고 오기'처럼 준비물 줄 밖에 있는 입고 갈 것
         m = re.search(r"([가-힣]{2,6})\s*(?:을|를)?\s*입고\s*오기", l)
         if m and not any(m.group(1) in i for i in items):
@@ -127,7 +136,7 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
     }]
     for l in lines:                                   # 회신 마감은 따로 일정으로
         m = md.search(l)
-        if m and re.search(r"까지\s*(제출|회신|내기)", l):
+        if m and re.search(r"까지\s*(제출|회신|내기)", l) and _date(m, base):
             events.append({"title": f"{ttl} 회신 마감", "kind": "deadline", "date": _date(m, base).isoformat(),
                            "start_time": None, "end_time": None, "location": None, "lat": None, "lon": None,
                            "outdoor": False, "target": None, "items": ["참가 신청서"], "ai_items": [], "notes": l})

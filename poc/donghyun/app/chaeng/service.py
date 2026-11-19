@@ -31,6 +31,7 @@ def now() -> str:
 def init():
     with db.tx() as con:
         con.executescript(SCHEMA)
+    sweep()
 
 
 # ---------- 작은 저장소 ----------
@@ -58,9 +59,9 @@ def set_profile(body: dict) -> dict:
     if "grade" in body:
         p["grade"] = int(body["grade"]) if str(body["grade"] or "").isdigit() else None
     if "traits" in body:
-        p["traits"] = [t for t in body["traits"] if t in known]
+        p["traits"] = [t for t in (body["traits"] or []) if t in known]
     if "always" in body:
-        p["always"] = [str(x).strip()[:12] for x in body["always"] if str(x).strip()][:6]
+        p["always"] = [str(x).strip()[:12] for x in (body["always"] or []) if str(x).strip()][:6]
     if "tone" in body and body["tone"] in tone.TONES:
         p["tone"] = body["tone"]
     _kv_set("profile", p)
@@ -108,7 +109,7 @@ def analyze(eid: int, text: str) -> dict | None:
         _meta_save(it["id"], res["items"][it["name"]])
     data = _event_data(eid)
     data |= {"forbidden": res["forbidden"], "not_needed": res["not_needed"], "list_open": res["list_open"],
-             "analyzed": True}
+             "analyzed": bool((text or "").strip())}       # 글 없이 부르면 '아직 확인 못 함'으로 남는다
     _event_save(eid, data)
     return view(eid)
 
@@ -121,19 +122,24 @@ def view(eid: int) -> dict | None:
         return None
     data = _event_data(eid)
     metas = _meta_all([i["id"] for i in ev["items"]])
-    rec = recommend.recommend(ev, get_profile(), _kv_get("forgot", {}), data["declined"],
-                              exclude=[f["name"] for f in data["forbidden"] + data["not_needed"]])
+    banned = [f["name"] for f in data["forbidden"] + data["not_needed"]]
+    rec = recommend.recommend(ev, get_profile(), _kv_get("forgot", {}), data["declined"], exclude=banned)
     for it in ev["items"]:
         m = metas.get(it["id"])
         if m is None:                                    # 분석 전이거나 나중에 더한 항목: 이름만으로 표시를 만든다
             m = guard.annotate(it["name"], "", data["forbidden"])
         it["meta"] = m
         it["optional"] = it["source"] in OPTIONAL_SOURCES or bool(m.get("optional_by_notice"))
-        it["guardian"] = False
-        if m.get("conditional") == "needed":             # "필요한 학생만": 보호자가 정한다. 아이 미션에는 넣지 않는다
-            it["optional"] = it["guardian"] = True
+        it["guardian"] = it["blocked"] = False
+        if m.get("guardian") or m.get("conditional") == "needed" or recommend.is_medicine(it["name"]):
+            it["optional"] = it["guardian"] = True       # 약과 "필요한 학생만": 보호자가 정한다. 아이 미션에는 넣지 않는다
         elif m.get("conditional") == "rain":             # "우천 시": 비 소식이 있을 때만 세는 준비물
             it["optional"] = "rain" not in rec["flags"]
+        if any(recommend.same(it["name"], n) for n in banned):
+            if it["source"] in ("ai", "weather", "recommend"):
+                it["blocked"] = it["optional"] = True    # 자동 추천이 통신문의 금지와 겹치면 아이에게 보이지 않는다
+            else:
+                it["conflict"] = True                    # 통신문 준비물이 금지와 겹치면 지우지 않고 보호자에게 알린다
     alerts = [f | {"flagged": f["name"] in data["flagged"], "removed": f["name"] in data["removed"]} for f in data["forbidden"]]
     ev["plus"] = {
         "analyzed": data["analyzed"], "list_open": data["list_open"], "forbidden": alerts,
@@ -150,7 +156,7 @@ def view(eid: int) -> dict | None:
 def summarize(ev: dict, data: dict) -> dict:
     """세는 항목(알림장·직접·받아들인 추천)과 선택·자동 추천을 나눠 센다. view() 가 optional 을 붙인 뒤에 부른다."""
     req = [i for i in ev["items"] if not i.get("optional")]
-    opt = [i for i in ev["items"] if i.get("optional")]
+    opt = [i for i in ev["items"] if i.get("optional") and not i.get("blocked") and not i.get("guardian")]
     left = [i["name"] for i in req if not i["checked"]]
     open_alerts = [n for n in data["flagged"] if n not in data["removed"]]      # 사진에 보였는데 아직 안 뺀 것만 막는다
     return {
@@ -159,6 +165,7 @@ def summarize(ev: dict, data: dict) -> dict:
         "optional_left": [i["name"] for i in opt if not i["checked"]],
         "open_alerts": open_alerts, "list_open": data["list_open"],
         "all_packed": bool(req) and not left,
+        "can_finish": bool(req) and not left and not open_alerts,     # '다 챙겼지'를 말해도 되는가
     }
 
 
@@ -170,7 +177,8 @@ def accept_rec(eid: int, name: str) -> dict | None:
     rec = next((r for r in v["plus"]["recs"] + v["plus"]["guardian_recs"] if r["name"] == name), None)
     if rec:
         iid = db.add_item(eid, rec["name"], source="recommend", reason=f"{rec['why']} · {rec['basis']}")
-        _meta_save(iid, guard.annotate(rec["name"]) | {"kind": rec["kind"], "emoji": rec["emoji"], "group": rec["group"]})
+        _meta_save(iid, guard.annotate(rec["name"]) | {"kind": rec["kind"], "emoji": rec["emoji"], "group": rec["group"],
+                                                       "guardian": rec["guardian_decides"]})
     return view(eid)
 
 
@@ -209,7 +217,7 @@ def quick_event(scenario_id: str, date: str, title: str | None = None) -> int | 
     sc = next((s for s in data["scenarios"] if s["id"] == scenario_id), None)
     if not sc:
         return None
-    datetime.strptime(date, "%Y-%m-%d")
+    date = datetime.strptime(str(date), "%Y-%m-%d").date().isoformat()   # 틀린 날짜는 여기서 멈추고, 저장은 늘 YYYY-MM-DD
     recs = [r for r in recommend.starter_items(scenario_id, data) if not r["guardian_decides"]]
     eid = db.insert_event(
         {"title": title or sc["name"], "kind": "event", "date": date, "outdoor": "outdoor" in sc.get("tags", []),
@@ -229,11 +237,14 @@ def kid_report(eid: int) -> dict | None:
     if not v:
         return None
     s = v["plus"]["summary"]
-    forgot = _kv_get("forgot", {})
-    for name in s["left"]:
-        key = guard.split_name(name)[0]
+    forgot, data = _kv_get("forgot", {}), _event_data(eid)
+    for key in data.get("forgot_logged", []):            # 같은 일정을 다시 보내도 한 번만 센다
+        forgot[key] = max(0, forgot.get(key, 0) - 1)
+    logged = [guard.split_name(name)[0] for name in s["left"]]
+    for key in logged:
         forgot[key] = forgot.get(key, 0) + 1
-    _kv_set("forgot", forgot)
+    _kv_set("forgot", {k: v for k, v in forgot.items() if v > 0})
+    _event_save(eid, data | {"forgot_logged": logged})
     title, body = tone.kid_report(v, s, get_profile())
     with db.tx() as con:
         con.execute("DELETE FROM notifications WHERE event_id=? AND kind='kid'", (eid,))
@@ -277,6 +288,9 @@ def return_view(eid: int) -> dict | None:
 
 
 def set_returned(eid: int, item_id: int, returned: bool) -> dict | None:
+    r = return_view(eid)
+    if not r or item_id not in {i["id"] for i in r["items"]}:
+        return None                                      # 이 일정의 다시 가져올 물건이 아니다
     data = _event_data(eid)
     data["returned"] = [x for x in data["returned"] if x != item_id] + ([item_id] if returned else [])
     _event_save(eid, data)
@@ -295,6 +309,17 @@ def return_report(eid: int) -> dict | None:
         con.execute("INSERT INTO notifications(event_id,kind,fire_at,message) VALUES(?, 'home', ?, ?)",
                     (eid, now(), f"{title}\n{body}"))
     return {"title": title, "body": body, "summary": s}
+
+
+def sweep(eid: int | None = None):
+    """지운 일정·준비물에 딸린 추가 정보(근거 줄, 스티커, 상태)를 같이 지운다."""
+    with db.tx() as con:
+        if eid is not None:
+            con.execute("DELETE FROM plus_event WHERE event_id=?", (eid,))
+            con.execute("DELETE FROM plus_sticker WHERE event_id=?", (eid,))
+        con.execute("DELETE FROM plus_event WHERE event_id NOT IN (SELECT id FROM events)")
+        con.execute("DELETE FROM plus_sticker WHERE event_id NOT IN (SELECT id FROM events)")
+        con.execute("DELETE FROM plus_item WHERE item_id NOT IN (SELECT id FROM items)")
 
 
 def tone_previews(eid: int) -> dict | None:

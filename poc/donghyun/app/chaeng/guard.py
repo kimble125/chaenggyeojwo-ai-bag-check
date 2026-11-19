@@ -17,7 +17,7 @@ _QTY = re.compile(r"(\d+|한|두|세)\s*(개|장|자루|권|벌|켤레|병|봉�
 _SPLIT_NAMES = re.compile(r"\s*(?:[·,、/]|와\s|과\s|및\s|이나\s|\s또는\s|\s혹은\s)\s*")
 _BAN_VERB = re.compile(
     r"([^.!?()（）\n]{1,60}?)\s*(?:은|는|을|를|도)?\s*"
-    r"(?:가져오지|가지고\s?오지|갖고\s?오지|지참하지|싸\s?오지|들고\s?오지|휴대하지|소지하지)\s*(?:않|말|마|못)")
+    r"(?:가져오지|가지고\s?오지|갖고\s?오지|지참하지|싸\s?오지|들고\s?오지|휴대하지|소지하지)\s*(?:않|말|마|못)(?!아도|어도)")
 _BAN_MARK = re.compile(
     r"([가-힣A-Za-z0-9 ·,、/]{1,40}?)\s*(?:등)?\s*(?:은|는|의)?\s*"
     r"(?:(?:지참|반입|사용|휴대|소지)\s*)?(불가|금지|안\s?됩니다|안\s?돼요|안\s?됨|[X✕×])(?![가-힣A-Za-z])")
@@ -68,10 +68,19 @@ def lines_of(text: str) -> list[str]:
 
 def split_name(name: str) -> tuple[str, str]:
     """'마실 물(플라스틱 물통)' → ('마실 물', '플라스틱 물통')"""
-    m = _PAREN.match(name.strip())
-    if not m:
-        return name.strip(), ""
-    return (m.group(1) + " " + m.group(3)).strip(), m.group(2).strip()
+    name = name.strip()
+    start = min((i for i in (name.find("("), name.find("（")) if i >= 0), default=-1)
+    if start < 0:
+        return name, ""
+    depth = 0
+    for i in range(start, len(name)):                 # 겹친 괄호: 바깥 괄호의 짝을 찾는다
+        if name[i] in "(（":
+            depth += 1
+        elif name[i] in ")）":
+            depth -= 1
+            if depth == 0:
+                return (name[:start] + " " + name[i + 1:]).strip(), name[start + 1:i].strip()
+    return name[:start].strip(), name[start + 1:].strip()
 
 
 def find_forbidden(text: str) -> list[dict]:
@@ -108,6 +117,21 @@ def list_open(text: str) -> bool:
     return False
 
 
+def _segments(text: str, base: str) -> list[str]:
+    """통신문에서 이 물건을 말하는 토막만(쉼표·마침표로 끊은 조각). 같은 줄의 다른 물건 조건은 끌어오지 않는다."""
+    key = re.sub(r"\s+", "", base)
+    if not text or len(key) < 2:
+        return []
+    out = []
+    for line in lines_of(text):
+        if re.search(r"준비물|챙길\s?것|지참물", line):
+            continue                                   # 준비물 나열 줄은 항목 이름으로 이미 읽었다
+        for seg in re.split(r"[,、!?]|\.\s", line):
+            if key in re.sub(r"\s+", "", seg):
+                out.append(seg.strip())
+    return out
+
+
 def annotate(name: str, text: str = "", forbidden: list[dict] | None = None) -> dict:
     """준비물 이름 하나에 조건·수량·종류·근거를 붙인다."""
     base, paren = split_name(name)
@@ -134,6 +158,17 @@ def annotate(name: str, text: str = "", forbidden: list[dict] | None = None) -> 
     q = _QTY.search(whole)
     if q:
         meta["quantity"] = q.group(0)
+        rest = re.sub(r"\s+", " ", base.replace(q.group(0), "")).strip()
+        if rest:
+            meta["base"] = base = rest
+    for seg in _segments(text, base):                  # 항목 이름에는 없고 통신문 글에만 있는 제한
+        if "conditional" not in meta and _NEEDED_ONLY.search(seg):
+            meta["conditional"] = "needed"
+        if "conditional" not in meta and _RAIN_ONLY.search(seg):
+            meta["conditional"] = "rain"
+        qs = _QTY.search(seg)
+        if qs and "quantity" not in meta:
+            meta["quantity"] = qs.group(0) + ("만" if re.search(re.escape(qs.group(0)) + r"\s*만", seg) else "")
     alts = [a.strip() for a in re.split(r"\s(?:또는|혹은|or)\s", base) if a.strip()]
     if len(alts) > 1:
         meta["any_of"] = alts

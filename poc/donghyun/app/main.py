@@ -186,7 +186,10 @@ async def api_event_patch(eid: int, body: dict):
 
 @app.delete("/api/events/{eid}")
 def api_event_delete(eid: int):
-    return {"deleted": db.delete_event(eid)}
+    deleted = db.delete_event(eid)
+    if plus_service:
+        plus_service.sweep(eid)          # 딸린 근거 줄·스티커·상태도 같이 지운다
+    return {"deleted": deleted}
 
 
 class ItemReq(BaseModel):

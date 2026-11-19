@@ -20,7 +20,7 @@ const ICONS = [
   [/멀미|약/, "💊"], [/선크림|썬크림|세면/, "🧴"], [/신청서|회신|동의서|서류/, "📝"],
   [/줄넘기/, "🪢"], [/카메라/, "📷"], [/이름표|명찰/, "🏷️"], [/돈|용돈|카드|지갑/, "🪙"], [/안경/, "👓"],
 ];
-const iconFor = (it) => it.meta?.emoji || (ICONS.find(([re]) => re.test(it.name)) || [, "🎒"])[1];
+const iconFor = (it) => esc(it.meta?.emoji || (ICONS.find(([re]) => re.test(it.name)) || [, "🎒"])[1]);
 
 // "물(음료)" → 큰 글씨 "물", 작은 글씨 "음료"
 function split(name) {
@@ -28,7 +28,8 @@ function split(name) {
   return m ? [m[1], m[2]] : [name, ""];
 }
 const nameOf = (it) => it.meta?.base || split(it.name)[0];
-const condOf = (it) => it.meta?.condition || "";
+const condOf = (it) => it.meta?.condition || it.meta?.quantity || "";       // 조건이 없으면 수량("한 봉지만")을 보여 준다
+const isRec = (it) => ["recommend", "ai", "weather"].includes(it.source);   // 통신문에 없는 것(받아들였어도 출처는 추천)
 const isWear = (it) => it.meta?.kind === "wear";
 const isOpt = (it) => !!it.optional;
 // 날씨 준비물은 아이가 이해할 말로
@@ -58,7 +59,7 @@ let recBudget = 4;                                         // 아이에게 한 �
 
 async function api(path, opt = {}) {
   const r = await fetch(path, opt.json ? { ...opt, headers: { "Content-Type": "application/json" }, body: JSON.stringify(opt.json) } : opt);
-  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch {} throw new Error(m); }
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch {} throw Object.assign(new Error(m), { status: r.status }); }
   return r.json();
 }
 function toast(m, ms = 2600) {
@@ -80,11 +81,14 @@ async function once(fn) {
 /* ---------- 일정 불러오기 ---------- */
 function adopt(v) {
   ev = v; plus = v.plus || null;
-  items = v.items.filter((i) => !i.guardian);             // 보호자가 정할 것(약)은 아이 미션에 넣지 않는다
+  items = v.items.filter((i) => !i.guardian && !i.blocked);   // 보호자가 정할 것(약)과 금지와 겹친 자동 추천은 아이 미션에 넣지 않는다
 }
 async function load(id) {
-  try { adopt(await api(`/api/plus/events/${id}`)); }      // 추가 기능이 없는 서버면 기본 일정만
-  catch { adopt(await api(`/api/events/${id}`)); }
+  try { adopt(await api(`/api/plus/events/${id}`)); }
+  catch (e) {
+    if (e.status !== 404 && e.status !== 405) throw e;    // 잠깐의 오류로 금지·보호자 표시를 잃지 않게: 추가 기능이 아예 없는 서버일 때만 기본 일정으로
+    adopt(await api(`/api/events/${id}`));
+  }
 }
 const reload = () => load(ev.id);
 const required = () => items.filter((i) => !isOpt(i));
@@ -109,7 +113,7 @@ $("#speakAll").addEventListener("click", () => {
   if (on === "s-one" && queue[qi]) return say(`${speakOf(queue[qi])}. 가방에 넣었으면 넣었어 버튼을 눌러요.`);
   if (on === "s-rec" && recQ[0]) return say(`${recQ[0].name}. ${recQ[0].why}. 챙길래, 아니면 괜찮아를 눌러요.`);
   if (on === "s-warn" && warnQ[0]) return say($("#warnLead").textContent + ". " + $("#warnWhy").textContent);
-  if (on === "s-done") return say($("#doneTitle").textContent + ". " + $("#doneLead").textContent);
+  if (on === "s-done") return say($("#doneTitle").textContent + ". " + $("#doneLead").textContent + (banList().length ? `. ${banList().map((f) => f.name).join(", ")}은 두고 가요.` : ""));
   if (on === "s-home") return say($("#homeTitle").textContent + ". " + $("#homeLead").textContent);
   let s = `${$("#layTitle").textContent}. ${items.map(speakOf).join(", ")}. 모두 ${items.length}개를 펼쳐 놓자.`;
   if (banList().length) s += ` ${banList().map((f) => f.name).join(", ")}은 두고 가요.`;
@@ -120,8 +124,8 @@ $("#speakAll").addEventListener("click", () => {
 function card(it, i, view) {
   const nm = nameOf(it), hint = kidHint(it), cond = condOf(it);
   const cls = [view === "result" ? (it.checked ? "done" : "todo") : "", isOpt(it) && view !== "result" ? "opt" : ""].join(" ");
-  const state = view === "result" ? `<span class="state">${it.checked ? "넣었음" : "아직"}${isOpt(it) ? " · 추천" : ""}</span>` : "";
-  const tag = view === "result" ? "" : isOpt(it) ? `<span class="tag">추천</span>` : isWear(it) ? `<span class="tag wear">입고 가요</span>` : "";
+  const state = view === "result" ? `<span class="state">${it.checked ? "넣었음" : "아직"}</span>` : "";
+  const tag = isRec(it) ? `<span class="tag">추천</span>` : it.meta?.optional_by_notice ? `<span class="tag">선택</span>` : it.meta?.conditional === "rain" ? `<span class="tag">비 올 때</span>` : isWear(it) ? `<span class="tag wear">입고 가요</span>` : "";
   const watch = view !== "result" && (plus?.watch || []).includes(it.name) ? `<span class="tag watch">지난번에 깜빡</span>` : "";
   return `<button class="card ${cls}" data-id="${it.id}" style="--tint:var(${TINTS[i % 6]})" aria-label="${esc(speakOf(it))}${view === "result" ? (it.checked ? " 넣었음" : " 아직") : ""}">
     ${tag}${watch}<span class="ic">${iconFor(it)}</span><span class="nm">${esc(nm)}</span>${cond ? `<span class="cond">${esc(cond)}</span>` : ""}${hint && view !== "result" ? `<span class="hint">${esc(hint)}</span>` : ""}${state}</button>`;
@@ -171,13 +175,22 @@ async function photoCheck(file, demoCase) {
     try {
       const fd = new FormData(); fd.append("image", file || new Blob(["demo"], { type: "image/png" }), "photo.png");
       try { r = await api(`/api/plus/events/${ev.id}/photo-check${demoCase ? `?case=${demoCase}` : ""}`, { method: "POST", body: fd }); }
-      catch (e) { if (!file) throw e; const fd2 = new FormData(); fd2.append("image", file); r = await api(`/api/events/${ev.id}/photo-check`, { method: "POST", body: fd2 }); }
+      catch (e) {                                                    // 옛 사진 확인은 추가 기능이 아예 없는 서버에서만. 크기·횟수·서버 오류는 하나씩으로
+        if (!file || plus || (e.status !== 404 && e.status !== 405)) throw e;
+        const fd2 = new FormData(); fd2.append("image", file); r = await api(`/api/events/${ev.id}/photo-check`, { method: "POST", body: fd2 });
+      }
     } catch (err) {
-      toast("사진을 못 봤어요. 하나씩 같이 볼까요?");
+      toast(err.status === 429 || err.status === 413 ? `${err.message}` : "사진을 못 봤어요. 하나씩 같이 볼까요?", 3500);
       return startOne(items.filter((i) => !i.checked), false);
     }
     if (r.people_or_names) toast("사람이나 이름표가 찍혔어요. 다음엔 물건만 찍어요", 4000);
-    for (const id of r.seen) await setChecked(id, true);            // 사진에 보인 것은 챙긴 것으로 친다(결과 화면에서 다시 뺄 수 있다)
+    try {
+      for (const id of r.seen) await setChecked(id, true);          // 사진에 보인 것은 챙긴 것으로 친다(결과 화면에서 다시 뺄 수 있다)
+    } catch (err) {                                                  // 저장이 안 됐으면 서버 상태를 다시 받아 하나씩으로
+      toast("저장을 못 했어요. 하나씩 같이 볼까요?", 3500);
+      try { await reload(); } catch {}
+      return startOne(items.filter((i) => !i.checked), false);
+    }
     if ((r.forbidden_seen || []).length) await reload();              // 서버가 적어 둔 '보였음' 표시를 받아 온다
     warnQ = (r.forbidden_seen || []).map((n) => banList().find((f) => f.name === n) || { name: n, evidence: "" });
     const rest = items.filter((i) => r.not_seen.includes(i.id) && !i.checked);
@@ -198,7 +211,7 @@ function renderRec() {
   if (!r) return renderLay();
   const c = $("#recCard");
   c.className = "big rec in";
-  c.innerHTML = `<span class="ic">${r.emoji}</span><span class="nm">${esc(split(r.name)[0])}</span><span class="hint">${esc(r.why)}</span>`;
+  c.innerHTML = `<span class="ic">${esc(r.emoji)}</span><span class="nm">${esc(split(r.name)[0])}</span><span class="hint">${esc(r.why)}</span>`;
   $("#recBasis").textContent = `추천 · ${r.basis}` + (recQ.length > 1 ? ` · ${recQ.length - 1}개 더 있어` : "");
   say(`${split(r.name)[0]}. ${r.why}`);
 }
@@ -227,8 +240,9 @@ function renderWarn() {
   say(`${f.name}이 보여요. 알림장에서 가져오지 말라고 했어요. 뺐으면 뺐어를 눌러요.`);
 }
 $("#warnDone").addEventListener("click", () => once(async () => {
-  const f = warnQ.shift();
+  const f = warnQ[0];
   if (f) adopt(await api(`/api/plus/events/${ev.id}/alerts`, { method: "POST", json: { name: f.name, removed: true } }));
+  warnQ.shift();                                                     // 저장된 뒤에만 다음 것으로
   renderWarn();
 }));
 $("#warnAsk").addEventListener("click", () => { warnQ.shift(); renderWarn(); });
@@ -286,6 +300,9 @@ function renderDone(celebrate = true) {
   if (optLeft) lead += `${lead ? " · " : ""}추천 ${optLeft}개는 안 넣었어`;
   $("#doneLead").innerHTML = lead;
   $("#fixAlerts").hidden = !ban.length;
+  const allBan = banList(), strip = $("#doneBan");
+  strip.hidden = !allBan.length;
+  if (allBan.length) strip.innerHTML = `<b>🙅 이건 두고 가요</b>${allBan.map((f) => esc(f.name) + (f.flagged && !f.removed ? " (사진에 보였어)" : "")).join(" · ")}`;
   const g = $("#doneGrid");
   g.innerHTML = items.map((it, i) => card(it, i, "result")).join("");
   g.querySelectorAll(".card").forEach((b) => b.addEventListener("click", () => once(async () => {
@@ -340,7 +357,7 @@ function renderHome() {
   $("#homeLead").innerHTML = !s.counted ? "다시 가져올 물건이 없어" : s.left.length ? `<b>${s.left.length}</b>개 더 찾아보자` : "두고 온 물건이 없어";
   const g = $("#homeGrid");
   g.innerHTML = home.items.map((it, i) => `<button class="card ${it.returned ? "done" : "todo"}" data-id="${it.id}" style="--tint:var(${TINTS[i % 6]})" aria-label="${esc(it.name)} ${it.returned ? "가져왔어" : "아직"}">
-    ${it.tag ? `<span class="tag wear">꼬리표</span>` : ""}<span class="ic">${iconFor(it)}</span><span class="nm">${esc(split(it.name)[0])}</span><span class="state">${it.returned ? "가져왔어" : "아직"}</span></button>`).join("");
+    ${it.tag ? `<span class="tag wear">꼬리표</span>` : ""}<span class="ic">${iconFor(it)}</span><span class="nm">${esc(it.name)}</span><span class="state">${it.returned ? "가져왔어" : "아직"}</span></button>`).join("");
   g.querySelectorAll(".card").forEach((b) => b.addEventListener("click", () => once(async () => {
     const it = home.items.find((x) => x.id == b.dataset.id);
     home = await api(`/api/plus/events/${ev.id}/return`, { method: "POST", json: { item_id: it.id, returned: !it.returned } });
@@ -353,6 +370,7 @@ function renderHome() {
 $("#homeReport").addEventListener("click", () => once(async () => {
   const r = await api(`/api/plus/events/${ev.id}/return/report`, { method: "POST" });
   $("#sentLead").textContent = r.summary.left.length ? `${r.summary.left.join(", ")}은(는) 내일 학교에서 찾아보자` : "두고 온 것 없이 잘 챙겨 왔어";
+  $("#again").hidden = true;                                         // 돌아오기 뒤에는 가방 싸기 체크를 푸는 버튼을 숨긴다
   show("s-sent");
 }));
 

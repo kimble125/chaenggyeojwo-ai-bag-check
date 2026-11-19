@@ -117,7 +117,7 @@ def example_photo_check(eid: int, case: str = "miss") -> dict | None:
     v = service.view(eid)
     if not v:
         return None
-    todo = [i for i in v["items"] if not i["checked"]]
+    todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"]]
     carry = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")]
     other = [i for i in todo if i not in carry]
     hide = 0 if case == "all" else 1 if (case == "glass" or len(carry) < 3) else 2
@@ -174,8 +174,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _body(self) -> bytes:
         n = int(self.headers.get("Content-Length") or 0)
-        if n > MAX_BODY:
-            raise ValueError("요청이 너무 커요(8MB까지)")
+        if not 0 <= n <= MAX_BODY:
+            raise ValueError("요청 크기가 맞지 않아요(8MB까지)")
         return self.rfile.read(n) if n else b""
 
     def _json(self) -> dict:
@@ -197,8 +197,9 @@ class Handler(BaseHTTPRequestHandler):
         return fields, files
 
     def _static(self, rel: str):
-        path = os.path.normpath(os.path.join(STATIC, rel))
-        if not path.startswith(STATIC) or not os.path.isfile(path):
+        root = os.path.realpath(STATIC)
+        path = os.path.realpath(os.path.join(root, rel))
+        if os.path.commonpath([root, path]) != root or not os.path.isfile(path):   # static 폴더 밖은 열지 않는다(링크 포함)
             return self._fail(404, "없는 파일이에요")
         with open(path, "rb") as f:
             self._send(200, f.read(), (mimetypes.guess_type(path)[0] or "application/octet-stream") +
@@ -342,11 +343,11 @@ ROUTES = [
     ("POST", r"/api/notice/fetch", r_fetch), ("POST", r"/api/notice/extract", r_extract), ("POST", r"/api/notice/commit", r_commit),
     ("GET", r"/api/events", lambda h, q: db.list_events(q.get("start"), q.get("end"))),
     ("GET", E, r_event), ("PATCH", E, r_event_patch),
-    ("DELETE", E, lambda h, q, eid: {"deleted": db.delete_event(int(eid))}),
+    ("DELETE", E, lambda h, q, eid: ({"deleted": db.delete_event(int(eid))}, service.sweep(int(eid)))[0]),
     ("POST", E + "/weather", r_weather),
     ("POST", E + "/items", lambda h, q, eid: {"id": db.add_item(int(eid), J(h)["name"].strip())}),
     ("PATCH", r"/api/items/(\d+)", r_item_check),
-    ("DELETE", r"/api/items/(\d+)", lambda h, q, iid: (db.delete_item(int(iid)), {"ok": True})[1]),
+    ("DELETE", r"/api/items/(\d+)", lambda h, q, iid: (db.delete_item(int(iid)), service.sweep(), {"ok": True})[2]),
     ("POST", E + "/photo-check", r_photo_basic),
     ("POST", E + "/kid-report", lambda h, q, eid: reminders.kid_report(int(eid))),
     ("GET", r"/api/notifications/due", lambda h, q: reminders.due_notifications()),

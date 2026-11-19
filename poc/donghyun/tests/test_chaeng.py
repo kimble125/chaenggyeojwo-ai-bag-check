@@ -8,7 +8,9 @@ import unittest
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(prefix="chaeng-test-"), "app.db")
 
 from app import db  # noqa: E402
-from app.chaeng import guard, recommend, service, tone  # noqa: E402
+from datetime import date as Date  # noqa: E402
+
+from app.chaeng import guard, recommend, service, simple_extract, tone  # noqa: E402
 
 NOTICE_A = """2학년 가을 현장체험학습 안내
 1. 일시 : 11월 20일(금) 09:00–14:30
@@ -43,6 +45,21 @@ class GuardTest(unittest.TestCase):
         self.assertIn("탄산음료", [f["name"] for f in guard.find_forbidden(NOTICE_C)])
         self.assertIn("도시락", [f["name"] for f in guard.find_forbidden(NOTICE_B)])
         self.assertIn("교통카드", [f["name"] for f in guard.find_not_needed(NOTICE_B)])
+
+    def test_allowed_sentence_is_not_forbidden(self):
+        t = "우산은 가져오지 않아도 됩니다. 장난감은 가져오지 않습니다."
+        self.assertEqual([f["name"] for f in guard.find_forbidden(t)], ["장난감"])
+        self.assertEqual([f["name"] for f in guard.find_not_needed(t)], ["우산"])
+
+    def test_limits_written_only_in_the_notice(self):
+        self.assertEqual(guard.annotate("과자", "과자는 한 봉지만! 탄산음료 X")["quantity"], "한 봉지만")
+        self.assertEqual(guard.annotate("우산", "우산은 필요한 학생만 준비하세요.")["conditional"], "needed")
+        other = guard.annotate("도시락", "3. 준비물 : 도시락, 비닐봉지 2장\n과자는 한 봉지만")
+        self.assertNotIn("quantity", other)                  # 같은 글의 다른 물건 수량을 끌어오지 않는다
+
+    def test_nested_parentheses(self):
+        self.assertEqual(guard.split_name("물통(플라스틱(500ml))"), ("물통", "플라스틱(500ml)"))
+        self.assertEqual(guard.annotate("비닐봉지 2장")["base"], "비닐봉지")
 
     def test_forbidden_hidden_in_item_parentheses(self):
         r = guard.analyze("3. 준비물 : 도시락, 물, 비닐 봉투 ( 장난감 등 불가 )", ["도시락", "물", "비닐 봉투 ( 장난감 등 불가 )"])
@@ -93,6 +110,12 @@ class RecommendTest(unittest.TestCase):
         self.assertTrue(recommend.same("마실 물(플라스틱 물통)", "물"))
         self.assertTrue(recommend.same("우천 시 우산 또는 우의", "우산 또는 우비"))
         self.assertFalse(recommend.same("모자", "돗자리"))
+        self.assertFalse(recommend.same("안경", "안경집"))               # 품는다고 같은 물건이 아니다
+        self.assertFalse(recommend.same("실내화", "실내화가방"))
+        self.assertTrue(recommend.same("개인 물통", "물"))
+        self.assertTrue(recommend.same("비닐봉지 2장", "비닐봉지"))
+        self.assertTrue(recommend.is_medicine("개인 약품(멀미약 등 필요한 학생)"))
+        self.assertFalse(recommend.is_medicine("세면도구(칫솔·치약·비누)"))
 
     def test_scenario_fills_only_missing(self):
         r = recommend.recommend(self.ev(["도시락", "마실 물(플라스틱 물통)", "모자"]), data=self.data)
@@ -216,6 +239,62 @@ class ServiceTest(unittest.TestCase):
         self.assertNotIn("멀미약", [r["name"] for r in p["recs"]])
         self.assertIn("멀미약", [r["name"] for r in p["guardian_recs"]])
 
+    def test_accepted_medicine_stays_with_guardian(self):
+        service.set_profile({"traits": ["motion_sickness"]})
+        eid = fresh_event(["도시락"])
+        v = service.accept_rec(eid, "멀미약")
+        med = next(i for i in v["items"] if i["name"] == "멀미약")
+        self.assertTrue(med["guardian"] and med["optional"])     # 받아들여도 아이 미션에는 안 나온다
+        eid2 = fresh_event(["도시락", "멀미약"])
+        self.assertTrue(next(i for i in service.view(eid2)["items"] if i["name"] == "멀미약")["guardian"])
+
+    def test_auto_items_that_clash_with_a_ban_are_hidden(self):
+        eid = fresh_event(["우비"])
+        service.analyze(eid, "우산은 가져오지 않습니다. 우비를 입고 오세요.")
+        db.replace_weather(eid, {"status": "ok", "rain_prob": 80, "rain_mm": 6, "weather": "비"},
+                           [{"name": "우산", "reason": "비 80%"}], "2026-11-19 21:00")
+        v = service.view(eid)
+        umbrella = next(i for i in v["items"] if i["name"] == "우산")
+        self.assertTrue(umbrella["blocked"])
+        self.assertEqual(v["plus"]["summary"]["optional"], 0)
+        self.assertNotIn("우산 또는 우비", [r["name"] for r in v["plus"]["recs"]])
+
+    def test_finish_needs_flagged_ban_removed(self):
+        eid = fresh_event(["도시락"])
+        service.analyze(eid, "장난감은 가져오지 않습니다.")
+        db.set_item_checked(service.view(eid)["items"][0]["id"], True)
+        service.flag_forbidden(eid, ["장난감"])
+        s = service.view(eid)["plus"]["summary"]
+        self.assertTrue(s["all_packed"])
+        self.assertFalse(s["can_finish"])
+        self.assertTrue(service.alert_removed(eid, "장난감")["plus"]["summary"]["can_finish"])
+
+    def test_analyze_without_text_is_not_marked_done(self):
+        eid = fresh_event(["도시락"])
+        self.assertFalse(service.analyze(eid, "")["plus"]["analyzed"])
+        self.assertTrue(service.analyze(eid, "준비물: 도시락")["plus"]["analyzed"])
+
+    def test_delete_event_sweeps_plus_tables(self):
+        eid = fresh_event(ITEMS_A)
+        service.analyze(eid, NOTICE_A)
+        service.give_sticker(eid, "⭐")
+        db.delete_event(eid)
+        service.sweep(eid)
+        with db.tx() as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) c FROM plus_event WHERE event_id=?", (eid,)).fetchone()["c"], 0)
+            self.assertEqual(con.execute("SELECT COUNT(*) c FROM plus_sticker WHERE event_id=?", (eid,)).fetchone()["c"], 0)
+            self.assertEqual(con.execute("SELECT COUNT(*) c FROM plus_item WHERE item_id NOT IN (SELECT id FROM items)").fetchone()["c"], 0)
+
+    def test_weather_refresh_keeps_item_ids(self):
+        eid = fresh_event(["도시락"])
+        w = {"status": "ok", "rain_prob": 80, "rain_mm": 6, "weather": "비"}
+        db.replace_weather(eid, w, [{"name": "우산", "reason": "a"}], "2026-11-19 21:00")
+        first = next(i for i in db.get_event(eid)["items"] if i["name"] == "우산")
+        db.set_item_checked(first["id"], True)
+        db.replace_weather(eid, w, [{"name": "우산", "reason": "b"}, {"name": "장갑", "reason": "c"}], "2026-11-19 22:00")
+        again = next(i for i in db.get_event(eid)["items"] if i["name"] == "우산")
+        self.assertEqual((again["id"], again["checked"], again["reason"]), (first["id"], True, "b"))
+
     def test_alert_removed(self):
         eid = fresh_event(ITEMS_A)
         service.analyze(eid, NOTICE_A)
@@ -232,6 +311,8 @@ class ServiceTest(unittest.TestCase):
         r = service.kid_report(eid)
         self.assertIn("넣음 1", r["body"])
         self.assertIn("물티슈", r["body"])
+        service.kid_report(eid)                               # 같은 일정을 다시 보내도 한 번만 센다
+        self.assertEqual(service._kv_get("forgot", {}).get("물티슈"), 1)
         eid2 = fresh_event(["도시락", "물티슈"])
         self.assertEqual(service.view(eid2)["plus"]["watch"], ["물티슈"])
 
@@ -249,6 +330,7 @@ class ServiceTest(unittest.TestCase):
         r = service.return_view(eid)
         names = [i["name"] for i in r["items"]]
         self.assertEqual(names, ["개인용 돗자리", "물통"])
+        self.assertIsNone(service.set_returned(eid, 999999, True))     # 이 일정의 물건이 아니면 받지 않는다
         r = service.set_returned(eid, r["items"][0]["id"], True)
         self.assertEqual(r["summary"]["left"], ["물통"])
         self.assertIn("아직 1", service.return_report(eid)["body"])
@@ -259,6 +341,9 @@ class ServiceTest(unittest.TestCase):
         self.assertTrue(all(i["source"] == "recommend" for i in v["items"]))
         self.assertIn("수영복", [i["name"] for i in v["items"]])
         self.assertIsNone(service.quick_event("no_such", "2026-11-21"))
+        self.assertEqual(db.get_event(service.quick_event("swim_academy", "2026-1-2"))["date"], "2026-01-02")
+        with self.assertRaises(ValueError):
+            service.quick_event("swim_academy", "2026-02-31")
 
     def test_rain_item_counts_only_when_rain(self):
         eid = fresh_event(["도시락", "우천 시 우산 또는 우의"])
@@ -279,6 +364,30 @@ class ServiceTest(unittest.TestCase):
         self.assertEqual(set(t), set(tone.TONES))
         self.assertIn("유리병", t["neat"]["body"])
         self.assertIn("🙅", t["cute"]["body"])
+
+
+class SimpleExtractTest(unittest.TestCase):
+    TODAY = Date(2026, 11, 19)
+
+    def test_samples(self):
+        for key, n_items in (("a", 8), ("b", 6), ("c", 6)):
+            s = simple_extract.sample(key, self.TODAY)
+            ev = simple_extract.extract(s["text"], s["title"], s["posted"], self.TODAY)["events"][0]
+            self.assertEqual((ev["date"], len(ev["items"])), ("2026-11-20", n_items), key)
+        self.assertEqual(simple_extract.extract("", today=self.TODAY)["events"], [])
+
+    def test_written_year_and_bad_dates(self):
+        ex = simple_extract.extract("체험학습\n일시: 2025년 11월 20일", today=self.TODAY)
+        self.assertEqual(ex["events"][0]["date"], "2025-11-20")
+        ex = simple_extract.extract("체험학습\n일시: 2월 29일", today=Date(2027, 12, 30))
+        self.assertEqual(ex["events"][0]["date"], "2028-02-29")
+        ex = simple_extract.extract("체험학습\n일시: 2월 30일", today=self.TODAY)
+        self.assertIn("확인해 주세요", ex["events"][0]["notes"])
+        ex = simple_extract.extract("체험학습\n일시: 1월 8일", today=Date(2026, 12, 28))
+        self.assertEqual(ex["events"][0]["date"], "2027-01-08")
+
+    def test_split_items_keeps_parentheses(self):
+        self.assertEqual(simple_extract.split_items("필기도구(연필 2자루, 지우개), 물통 등"), ["필기도구(연필 2자루, 지우개)", "물통"])
 
 
 if __name__ == "__main__":

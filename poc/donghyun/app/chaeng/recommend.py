@@ -15,27 +15,34 @@ import re
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "scenarios.json")
 _GRADE_RANK = {"좋음": 0, "보통": 1, "나쁨": 2, "매우나쁨": 3}
-_SYNONYMS = [
-    {"물", "마실물", "물통", "음료", "생수", "텀블러", "물하나더"},
-    {"우산", "우비", "우의", "비옷", "접이식우산", "우산또는우비", "우산또는우의", "우비여벌양말"},
-    {"돗자리", "매트", "개인용돗자리"},
+_SYNONYMS = [                      # 같은 물건으로 치는 이름(꾸밈말·수량·괄호를 뗀 낱말 기준)
+    {"물", "마실물", "물통", "물병", "음료", "음료수", "생수", "텀블러", "물하나더"},
+    {"우산", "우비", "우의", "비옷", "접이식우산"},
+    {"돗자리", "매트"},
     {"물티슈", "휴지", "티슈"},
-    {"필기도구", "연필", "필통", "펜", "알림장필통"},
+    {"필기도구", "필기구", "연필", "필통", "펜"},
     {"간식", "과자", "간식조금"},
     {"마스크", "kf80마스크", "kf94마스크"},
-    {"겉옷", "외투", "점퍼", "바람막이", "따뜻한겉옷", "얇은겉옷"},
-    {"여벌옷", "갈아입을옷", "여벌티셔츠"},
+    {"겉옷", "외투", "점퍼", "바람막이", "보온용점퍼"},
+    {"여벌옷", "갈아입을옷", "여벌티셔츠", "여분옷"},
     {"수건", "손수건", "타월"},
     {"선크림", "썬크림", "자외선차단제"},
-    {"비닐봉지", "비닐봉투", "비닐"},
-    {"양말", "여벌양말", "속옷양말"},
-    {"운동화", "편한신발"},
-    {"체육복", "편한옷", "활동복", "간편한복장"},
-    {"장갑", "장갑핫팩"},
+    {"비닐봉지", "비닐봉투", "비닐", "위생봉지", "지퍼백", "젖은것담을봉지"},
+    {"양말", "여벌양말", "두꺼운양말"},
+    {"운동화", "신발"},
+    {"체육복", "옷", "활동복", "복장", "운동복장"},
     {"물안경", "수경"},
+    {"세면도구", "샤워"},
 ]
+_MODIFIER = re.compile(r"^(개인용|개인|휴대용|작은|얇은|따뜻한|편한|간편한|여분의)")
+_COUNT = re.compile(r"(\d+|한|두|세)\s*(개|장|자루|권|벌|켤레|병|봉지|통|쪽)(\s*(이상|만))?")
 LIMITS = {"scenario": 5, "wear": 2, "weather": 4, "personal": 3}
-_MEDICINE = re.compile(r"상비약|멀미약|알레르기 약|개인 약|기피제|(?<!치)약$")
+_MEDICINE = re.compile(r"상비약|비상약|멀미약|알레르기 약|개인\s?약|약품|기피제|(?<!치)약$")
+
+
+def is_medicine(name: str) -> bool:
+    """약은 아이가 아니라 보호자가 정한다."""
+    return bool(_MEDICINE.search(re.sub(r"[(（].*?[)）]", "", name or "").strip()))
 
 
 def load(path: str | None = None) -> dict:
@@ -43,24 +50,27 @@ def load(path: str | None = None) -> dict:
         return json.load(f)
 
 
-def norm(name: str) -> str:
-    name = re.sub(r"[(（].*?[)）]", "", name or "")
-    return re.sub(r"[\s·,/\-]+", "", name).lower()
+def tokens(name: str) -> set[str]:
+    """이름을 견줄 낱말로 나눈다: 괄호·수량·'우천 시'·꾸밈말을 떼고 '·', '또는'으로 가른다."""
+    name = re.sub(r"[(（].*?[)）]", " ", name or "")
+    name = re.sub(r"우천\s?시|비\s?올\s?때", " ", name)
+    name = _COUNT.sub(" ", name)
+    out = set()
+    for part in re.split(r"[·,/]|\s또는\s|\s혹은\s", name):
+        tok = re.sub(r"[\s\-]+", "", part).lower()
+        tok = _MODIFIER.sub("", tok) or tok
+        if tok:
+            out.add(tok)
+    return out
 
 
 def same(a: str, b: str) -> bool:
-    """같은 물건으로 볼 수 있는가(이름이 같거나, 같은 뜻 묶음에 있거나, 한쪽이 다른 쪽을 품음)."""
-    x, y = norm(a), norm(b)
-    if not x or not y:
-        return False
-    if x == y:
-        return True
-    def hit(v: str, g: set) -> bool:
-        return v in g or any(len(m) >= 2 and m in v for m in g)
-    if any(hit(x, g) and hit(y, g) for g in _SYNONYMS):
-        return True
-    short, long_ = (x, y) if len(x) <= len(y) else (y, x)
-    return len(short) >= 2 and short in long_ and short not in ("옷", "약")
+    """같은 물건으로 볼 수 있는가: 낱말이 같거나 같은 뜻 묶음에 있을 때만. 한쪽이 다른 쪽을 품는 것(안경과 안경집)은 다른 물건이다."""
+    for x in tokens(a):
+        for y in tokens(b):
+            if x == y or any(x in g and y in g for g in _SYNONYMS):
+                return True
+    return False
 
 
 def match_scenario(event: dict, data: dict) -> dict | None:
@@ -112,7 +122,7 @@ def _rec(item: dict, group: str) -> dict:
     return {
         "name": item["name"], "emoji": item.get("emoji", "🎒"), "kind": item.get("kind", "carry"),
         "why": re.sub(r"\s*\[제안\]\s*$", "", item.get("why", "")), "group": group, "basis": _basis(item),
-        "guardian_decides": bool(item.get("guardian_decides")) or bool(_MEDICINE.search(item["name"])),   # 약은 보호자가 정한다
+        "guardian_decides": bool(item.get("guardian_decides")) or is_medicine(item["name"]),   # 약은 보호자가 정한다
     }
 
 
