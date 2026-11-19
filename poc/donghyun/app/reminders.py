@@ -71,7 +71,7 @@ def due_notifications() -> list[dict]:
         ev = db.get_event(r["event_id"])
         if not ev:
             continue
-        if r["kind"] == "kid" and r["message"]:
+        if r["kind"] in ("kid", "home") and r["message"]:
             title, _, body = r["message"].partition("\n")
         else:
             title, body = build_message(ev, "eve" if r["kind"] == "eve" else "morning")

@@ -119,7 +119,7 @@ async function renderCal() {
   $("#calGrid").innerHTML = WD.map((w) => `<div class="wd">${w}</div>`).join("") + cells.map((d) => {
     const k = ymd(d), list = byDay[k] || [];
     return `<button data-d="${k}" class="${d.getMonth() !== m ? "out" : ""} ${k === today() ? "today" : ""} ${k === selDay ? "sel" : ""}">
-      <b>${d.getDate()}</b><i>${list.slice(0, 3).map((e) => `<u class="${e.kind}"></u>`).join("")}</i></button>`;
+      <b>${d.getDate()}</b><i>${list.slice(0, 3).map((e) => `<u class="${esc(e.kind)}"></u>`).join("")}</i></button>`;
   }).join("");
   $$("#calGrid button").forEach((b) => b.addEventListener("click", () => { selDay = b.dataset.d; renderCal(); }));
   const sd = parse(selDay);
@@ -184,7 +184,7 @@ function renderSheet(ev) {
       <div class="chip-add"><input id="newItem" placeholder="준비물 직접 추가"><button class="ghost" id="addItem">추가</button></div>
     </div>
     ${ev.notes ? `<div class="card"><strong>메모</strong><div class="notes">${esc(ev.notes)}</div></div>` : ""}
-    ${ev.source_url ? `<p class="hint">출처: <a href="${esc(ev.source_url)}" target="_blank" rel="noopener">${esc(ev.source_title || "가정통신문")}</a></p>` : ""}
+    ${ev.source_url && /^https?:\/\//i.test(ev.source_url) ? `<p class="hint">출처: <a href="${esc(ev.source_url)}" target="_blank" rel="noopener">${esc(ev.source_title || "가정통신문")}</a></p>` : ""}
     ${ev.kind !== "deadline" && ev.items.length ? `<a class="kid-cta" href="/kid?e=${ev.id}">🧒 아이랑 가방 싸기<small>큰 카드로 하나씩 · 사진으로 확인</small></a>` : ""}
     <div class="actions">
       <button class="ghost small" id="testNoti">알림 미리보기</button>

@@ -1,0 +1,174 @@
+"""알림장 글에서 금지·조건을 놓치지 않게 뽑는 규칙(모델 호출 없음, 표준 라이브러리만).
+
+- 금지: "유리병·탄산음료와 장난감은 가져오지 않습니다", "( 장난감 등 불가 )", "탄산음료 X"
+- 조건: "마실 물(플라스틱 물통)" → 조건 '플라스틱 물통'
+- 열린 목록: 준비물 줄이 "… 등"으로 끝남 → 추천으로 채울 자리
+- 사람·상황에 따라 다른 것: "필요한 학생", "우천 시"
+- 원문 근거: 항목이 나온 줄을 그대로 붙인다(알림장 전문은 저장하지 않고 그 줄만)
+
+여기서 뽑은 것은 판정이 아니라 표시다. 아이·보호자가 화면에서 보고 직접 확인한다.
+"""
+from __future__ import annotations
+
+import re
+
+_PAREN = re.compile(r"^(.*?)\s*[(（](.+?)[)）]\s*(.*)$")
+_QTY = re.compile(r"(\d+|한|두|세)\s*(개|장|자루|권|벌|켤레|병|봉지|통|쪽)")
+_SPLIT_NAMES = re.compile(r"\s*(?:[·,、/]|와\s|과\s|및\s|이나\s|\s또는\s|\s혹은\s)\s*")
+_BAN_VERB = re.compile(
+    r"([^.!?()（）\n]{1,60}?)\s*(?:은|는|을|를|도)?\s*"
+    r"(?:가져오지|가지고\s?오지|갖고\s?오지|지참하지|싸\s?오지|들고\s?오지|휴대하지|소지하지)\s*(?:않|말|마|못)")
+_BAN_MARK = re.compile(
+    r"([가-힣A-Za-z0-9 ·,、/]{1,40}?)\s*(?:등)?\s*(?:은|는|의)?\s*"
+    r"(?:(?:지참|반입|사용|휴대|소지)\s*)?(불가|금지|안\s?됩니다|안\s?돼요|안\s?됨|[X✕×])(?![가-힣A-Za-z])")
+_NOT_NEEDED = re.compile(r"([가-힣A-Za-z0-9 ·,]{1,30}?)\s*(?:은|는)\s*(?:필요\s?없|준비하지\s?않아도|가져오지\s?않아도)")
+_NEEDED_ONLY = re.compile(r"필요한\s*(?:학생|사람|어린이|친구)|해당\s*(?:학생|자)|희망자|복용\s*중")
+_RAIN_ONLY = re.compile(r"우천\s?시|비\s?(?:가)?\s?(?:오면|올\s?경우|올\s?때)")
+_WEAR = re.compile(r"복장|옷차림|입고|착용|신고|체육복|활동복|운동화|긴바지|긴팔|반티|단체복")
+_SUBMIT = re.compile(r"회신서|신청서|동의서|참가서|확인서|회신")
+_CONSUMED = re.compile(r"간식|과자|음료|물티슈|휴지|티슈|비닐|봉지|봉투|약$|멀미약|밴드|도시락$|김밥|과일|회신서|신청서|동의서")
+_KEEP = re.compile(r"도시락\s?통|물통|텀블러|수저|젓가락")
+_TRIM = re.compile(r"^[\s※\-•·*\d.)]+|[\s.,·]+$")
+_STOP = {"", "등", "것", "물건", "물품", "기타", "그 외", "준비물"}
+
+# 금지된 것이 어떤 준비물의 '안 되는 대체물'인지(같은 자리에 놓일 수 있는 것)
+_SUBSTITUTE_OF = [
+    (re.compile(r"유리병|유리\s?용기|캔"), re.compile(r"^(?:마실\s?)?물$|음료|물통|텀블러|생수")),
+    (re.compile(r"탄산|콜라|사이다"), re.compile(r"^(?:마실\s?)?물$|음료|생수")),
+    (re.compile(r"일회용"), re.compile(r"도시락|수저|물통")),
+    (re.compile(r"슬리퍼|샌들|크록스"), re.compile(r"운동화|신발")),
+]
+
+
+def _clean(name: str) -> str:
+    name = _TRIM.sub("", name)
+    name = re.sub(r"\s*(?:등|같은\s?것)$", "", name).strip()
+    return re.sub(r"\s+", " ", name)
+
+
+def _names(chunk: str) -> list[str]:
+    out = []
+    for part in _SPLIT_NAMES.split(chunk):
+        n = _clean(part)
+        n = re.sub(r"^(?:그리고|또한|단|특히)\s*", "", n)
+        if n not in _STOP and 1 < len(n) <= 16 and not re.search(r"습니다|세요|니다$", n):
+            out.append(n)
+    return out
+
+
+def lines_of(text: str) -> list[str]:
+    out = []
+    for raw in (text or "").replace("\r", "").split("\n"):
+        for s in re.split(r"(?<=[.!?。])\s+|\s*※\s*", raw):
+            s = s.strip()
+            if s:
+                out.append(s)
+    return out
+
+
+def split_name(name: str) -> tuple[str, str]:
+    """'마실 물(플라스틱 물통)' → ('마실 물', '플라스틱 물통')"""
+    m = _PAREN.match(name.strip())
+    if not m:
+        return name.strip(), ""
+    return (m.group(1) + " " + m.group(3)).strip(), m.group(2).strip()
+
+
+def find_forbidden(text: str) -> list[dict]:
+    """알림장 글에서 가져오면 안 되는 것. [{name, evidence}] (같은 이름은 한 번만)"""
+    seen, out = set(), []
+    for line in lines_of(text):
+        chunks = [m.group(1) for m in _BAN_VERB.finditer(line)]
+        chunks += [m.group(1) for m in _BAN_MARK.finditer(line)]
+        for chunk in chunks:
+            chunk = chunk.split(":")[-1].split("：")[-1]
+            for n in _names(chunk):
+                if n not in seen:
+                    seen.add(n)
+                    out.append({"name": n, "evidence": line[:140]})
+    return out
+
+
+def find_not_needed(text: str) -> list[dict]:
+    seen, out = set(), []
+    for line in lines_of(text):
+        for m in _NOT_NEEDED.finditer(line):
+            for n in _names(m.group(1)):
+                if n not in seen:
+                    seen.add(n)
+                    out.append({"name": n, "evidence": line[:140]})
+    return out
+
+
+def list_open(text: str) -> bool:
+    """준비물 줄이 '등'으로 끝나는가(목록에 없는 것이 더 있을 수 있음)."""
+    for line in lines_of(text):
+        if re.search(r"준비물|챙길\s?것|지참물", line) and re.search(r"등\s*[.)]?\s*$", line):
+            return True
+    return False
+
+
+def annotate(name: str, text: str = "", forbidden: list[dict] | None = None) -> dict:
+    """준비물 이름 하나에 조건·수량·종류·근거를 붙인다."""
+    base, paren = split_name(name)
+    meta: dict = {"base": base, "kind": "carry"}
+    whole = name
+    if paren:
+        if _BAN_MARK.search(paren) or _BAN_VERB.search(paren):
+            pass                                   # 괄호 안이 금지 문구면 조건으로 쓰지 않는다(금지 목록으로 간다)
+        elif paren.strip() in ("선택", "선택 사항", "희망"):
+            meta["optional_by_notice"] = True      # 알림장이 선택이라고 적은 것만 선택. 안 적혀 있으면 전부 챙길 것
+        elif _NEEDED_ONLY.search(paren):
+            meta["conditional"] = "needed"
+        elif _RAIN_ONLY.search(paren):
+            meta["conditional"] = "rain"
+        else:
+            meta["condition"] = paren
+    if "conditional" not in meta:
+        if _NEEDED_ONLY.search(whole) or re.search(r"개인\s?약|상비약", whole):
+            meta["conditional"] = "needed"
+        elif _RAIN_ONLY.search(whole):
+            meta["conditional"] = "rain"
+            base = _RAIN_ONLY.sub("", base).strip() or base
+            meta["base"] = base
+    q = _QTY.search(whole)
+    if q:
+        meta["quantity"] = q.group(0)
+    alts = [a.strip() for a in re.split(r"\s(?:또는|혹은|or)\s", base) if a.strip()]
+    if len(alts) > 1:
+        meta["any_of"] = alts
+    if _SUBMIT.search(base):
+        meta["kind"] = "submit"
+    elif _WEAR.search(whole) and not re.search(r"실내화|여벌|갈아입", whole):
+        meta["kind"] = "wear"
+    meta["bring_back"] = bool(_KEEP.search(base)) or not _CONSUMED.search(base)
+    if meta["kind"] == "submit":
+        meta["bring_back"] = False
+    na = [f["name"] for f in (forbidden or [])
+          if any(a.search(f["name"]) and b.search(base) for a, b in _SUBSTITUTE_OF)]
+    if na:
+        meta["not_accepted"] = na
+    if text:
+        key = re.sub(r"\s+", "", base)[:6]
+        for line in lines_of(text):
+            if key and key in re.sub(r"\s+", "", line):
+                meta["evidence"] = line[:140]
+                break
+    return meta
+
+
+def analyze(text: str, item_names: list[str]) -> dict:
+    """알림장 글 + 뽑힌 준비물 이름 → 금지 목록, 열린 목록 여부, 항목별 표시."""
+    forb = find_forbidden(text)
+    for n in item_names:                       # 항목 괄호 안에 숨은 금지: "비닐 봉투 ( 장난감 등 불가 )"
+        _, paren = split_name(n)
+        if paren and (_BAN_MARK.search(paren) or _BAN_VERB.search(paren)):
+            for f in find_forbidden(paren):
+                if f["name"] not in {x["name"] for x in forb}:
+                    forb.append({"name": f["name"], "evidence": n[:140]})
+    return {
+        "forbidden": forb,
+        "not_needed": find_not_needed(text),
+        "list_open": list_open(text) or any(re.search(r"등\s*$", n) for n in item_names[-1:]),
+        "items": {n: annotate(n, text, forb) for n in item_names},
+    }

@@ -171,14 +171,21 @@ def delete_item(item_id: int):
 def replace_weather(event_id: int, weather: dict | None, items: list[dict], fetched_at: str):
     """날씨 준비물은 매번 다시 계산. 같은 이름이면 체크 상태를 유지."""
     with tx() as con:
-        prev = {r["name"]: r["checked"] for r in con.execute(
-            "SELECT name, checked FROM items WHERE event_id=? AND source='weather'", (event_id,))}
-        con.execute("DELETE FROM items WHERE event_id=? AND source='weather'", (event_id,))
+        prev = {r["name"]: r["id"] for r in con.execute(
+            "SELECT id, name FROM items WHERE event_id=? AND source='weather'", (event_id,))}
+        keep = set()
         for it in items:
-            con.execute(
-                "INSERT INTO items(event_id,name,source,reason,checked) VALUES(?,?, 'weather', ?, ?)",
-                (event_id, it["name"], it["reason"], prev.get(it["name"], 0)),
-            )
+            if it["name"] in prev:        # 같은 이름은 같은 줄을 고쳐 쓴다(번호와 체크 유지)
+                con.execute("UPDATE items SET reason=? WHERE id=?", (it["reason"], prev[it["name"]]))
+                keep.add(prev[it["name"]])
+            else:
+                con.execute(
+                    "INSERT INTO items(event_id,name,source,reason,checked) VALUES(?,?, 'weather', ?, 0)",
+                    (event_id, it["name"], it["reason"]),
+                )
+        for name, iid in prev.items():
+            if iid not in keep:
+                con.execute("DELETE FROM items WHERE id=?", (iid,))
         con.execute(
             "UPDATE events SET weather_json=?, weather_at=? WHERE id=?",
             (json.dumps(weather, ensure_ascii=False) if weather else None, fetched_at, event_id),

@@ -150,3 +150,42 @@ h1 { font-family: "Jua", sans-serif; font-weight: 400; font-size: 30px; line-hei
   .card { min-height: 124px; } .card .ic { width: 58px; height: 58px; font-size: 34px; } .card .nm { font-size: 19px; }
   h1 { font-size: 26px; } .big .ic { font-size: 96px; } .big .nm { font-size: 34px; }
 }
+
+/* ===== 챙겼지 추가: 추천 · 두고 갈 것 · 스티커판 · 돌아오기 ===== */
+:root { --warn: #b8432f; --warn-soft: #fde9e4; --rec: #8a4fb0; --rec-soft: #f3e9fb; }
+.bar-r { display: flex; gap: 8px; }
+.fine { text-align: center; color: var(--ink-soft); font-size: 12px; margin: 8px 12px 0; line-height: 1.45; }
+.ban { display: block; width: 100%; text-align: left; border: 0; border-left: 8px solid var(--warn); background: var(--warn-soft); color: #5a1d12;
+  border-radius: 16px; padding: 12px 14px; margin: 0 0 12px; font-size: 15px; line-height: 1.4; cursor: pointer; min-height: 56px; }
+.ban b { font-family: "Jua", sans-serif; font-weight: 400; font-size: 18px; display: block; }
+.recbar { display: flex; align-items: center; gap: 10px; width: 100%; border: 3px dotted var(--rec); background: var(--rec-soft); color: #4a2466;
+  border-radius: 20px; padding: 12px 14px; margin: 12px 0 0; font-family: "Jua", sans-serif; font-size: 19px; cursor: pointer; min-height: 64px; text-align: left; }
+.recbar small { display: block; font-family: "Noto Sans KR", sans-serif; font-size: 12px; opacity: .8; }
+.card .tag { position: absolute; top: 8px; left: 10px; font-size: 11px; font-weight: 700; border-radius: 99px; padding: 2px 8px;
+  background: var(--rec-soft); color: var(--rec); border: 1.5px dotted var(--rec); }
+.card .tag.wear { background: var(--t4); color: #6b5200; border: 1.5px solid #d9b93c; }
+.card .tag.watch { left: auto; right: 10px; background: var(--t1); color: #7a3413; border: 1.5px solid #e9a27e; }
+.card .cond { font-size: 13px; font-weight: 700; color: var(--ink); background: var(--t4); border-radius: 8px; padding: 2px 8px; text-align: center; }
+.card.opt { outline: 3px dotted var(--rec); outline-offset: -3px; box-shadow: none; }
+.big.rec { background: var(--rec-soft); outline: 4px dotted var(--rec); cursor: default; }
+.big.warn { background: var(--warn-soft); outline: 4px solid var(--warn); cursor: default; }
+.big .cond { font-size: 18px; font-weight: 700; background: var(--t4); color: #4a3b00; border-radius: 12px; padding: 4px 12px; }
+.big .nope { font-size: 15px; color: var(--warn); font-weight: 700; }
+.cta.soft { background: var(--paper); color: var(--ink); box-shadow: 0 6px 0 var(--edge); }
+.dock.two { grid-template-columns: 1fr 1fr; }
+.dock.two .sub { grid-column: 1 / -1; }
+.sub { min-height: 44px; }
+.demo-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; font-size: 12px; color: var(--ink-soft); padding: 4px 0; }
+.demo-row span { width: 100%; text-align: center; }
+.demo-row button { border: 2px dashed var(--edge); background: var(--paper); border-radius: 12px; padding: 10px 12px; font-size: 14px; min-height: 44px; cursor: pointer; }
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.board .st { background: var(--paper); border-radius: 20px; padding: 12px 6px; text-align: center; box-shadow: 0 4px 0 var(--edge); }
+.board .st i { font-style: normal; font-size: 44px; display: block; font-family: "Noto Color Emoji", sans-serif; }
+.board .st b { display: block; font-size: 12px; font-weight: 700; margin-top: 2px; word-break: keep-all; }
+.board .st small { display: block; font-size: 11px; color: var(--ink-soft); }
+.board .st.empty { grid-column: 1 / -1; box-shadow: none; background: transparent; border: 3px dashed var(--edge); padding: 28px 12px; font-size: 16px; color: var(--ink-soft); }
+.note .stk { font-size: 22px; font-family: "Noto Color Emoji", sans-serif; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --warn: #f08d7a; --warn-soft: #43201a; --rec: #cf9ff0; --rec-soft: #352641; }
+  :root:not([data-theme="light"]) .ban { color: #ffd9d1; } :root:not([data-theme="light"]) .recbar { color: #ecd8fb; }
+}

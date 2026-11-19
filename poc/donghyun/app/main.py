@@ -24,6 +24,13 @@ WEATHER_REFRESH_MIN = 180
 
 mcp_app = mcp.streamable_http_app()
 
+try:                                   # 챙겼지 추가 기능(추천·금지 표시·스티커·돌아오기). 빠져도 본체는 돈다
+    from .chaeng import service as plus_service
+    from .chaeng.router import router as plus_router
+except Exception as e:                 # noqa: BLE001
+    plus_service = plus_router = None
+    log.warning("chaeng plus not loaded: %s", e)
+
 
 SIMULATE = {  # 발표 시연용: 실제 예보 위에 덮어씀
     "rain": {"weather": "비", "rain_prob": 80, "rain_prob_window": 80, "rain_mm": 12.0, "rain_signal": "rain"},
@@ -69,6 +76,8 @@ async def background_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init()
+    if plus_service:
+        plus_service.init()
     task = asyncio.create_task(background_loop())
     async with mcp.session_manager.run():
         yield
@@ -264,6 +273,8 @@ def healthz():
     return {"ok": True}
 
 
+if plus_router:
+    app.include_router(plus_router)
 app.mount("/mcp", mcp_app)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
