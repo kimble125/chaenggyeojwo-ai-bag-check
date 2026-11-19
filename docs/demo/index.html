@@ -111,13 +111,14 @@
     </div>
   </section>
 </main>
-<p class="foot">가방쏙 · 팀 잘챙겼조 · 엘리스 AI 챌린지 2026 · 이 페이지는 계산 코드(파이썬)를 브라우저 안에서 그대로 돌려요(Pyodide). 서버로 보내는 것은 날씨 예보 요청(Open-Meteo)뿐이에요.</p>
+<p class="foot">가방쏙 · 팀 잘챙겼조 · 엘리스 AI 챌린지 2026 · 이 페이지는 계산 코드(파이썬)를 브라우저 안에서 그대로 돌려요(Pyodide). 여기서 넣은 통신문과 사진은 어디로도 보내지 않아요. 바깥과 주고받는 것은 실행 도구와 글꼴 내려받기, 날씨 예보 조회(Open-Meteo)뿐이에요.</p>
 
 <div id="loading">
   <div>
     <img src="app/mascot/ssok_look.png" alt="">
     <h2>가방 여는 중…</h2>
     <p id="stage">준비하고 있어요</p>
+    <p style="margin-top:14px"><a class="pill" href="../index.html#flow">기다리지 않고 화면 그림으로 보기</a></p>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -191,6 +192,7 @@ function fail(e) {
 
 async function boot() {
   const slow = setTimeout(() => stage("조금 더 걸리고 있어요. 네트워크가 느리면 30초쯤 걸릴 수 있어요"), 12000);
+  const giveUp = setTimeout(() => { if (!window.chaengApi) fail(new Error("90초 안에 준비하지 못했어요")); }, 90000);
   try {
     stage("파이썬 여는 중… 처음에는 10초쯤 걸려요");
     const [, online, src, bootCode] = await Promise.all([
@@ -220,10 +222,11 @@ async function boot() {
     eventId = (evs.find((e) => e.kind !== "deadline" && e.items.length) || evs[0]).id;
     frames.parent.src = "app/parent.html";
     frames.kid.src = `app/kid.html?e=${eventId}`;
-    clearTimeout(slow);
+    clearTimeout(slow); clearTimeout(giveUp);
+    if (!$("#stage")) return;                         // 기다리다 그만둔 뒤에 준비가 끝난 경우: 안내 화면을 그대로 둔다
     $("#loading").hidden = true;
     if (!online) toast("날씨 서버에 닿지 않아 '시연용 가정' 날씨로 보여 줘요", 4500);
-  } catch (e) { clearTimeout(slow); fail(e); }
+  } catch (e) { clearTimeout(slow); clearTimeout(giveUp); fail(e); }
 }
 
 $("#reset").addEventListener("click", () => {

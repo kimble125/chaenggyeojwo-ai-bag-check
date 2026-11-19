@@ -51,6 +51,15 @@ class GuardTest(unittest.TestCase):
         self.assertEqual([f["name"] for f in guard.find_forbidden(t)], ["장난감"])
         self.assertEqual([f["name"] for f in guard.find_not_needed(t)], ["우산"])
 
+    def test_ban_sentence_with_object_particle(self):
+        self.assertEqual([f["name"] for f in guard.find_forbidden("장난감을 가져오면 안 됩니다.")], ["장난감"])
+        self.assertEqual([f["name"] for f in guard.find_forbidden("유리병과 캔은 가지고 오면 안 돼요")], ["유리병", "캔"])
+        self.assertEqual([f["name"] for f in guard.find_forbidden("휴대폰을 사용 금지")], ["휴대폰"])
+        eid = fresh_event(["장난감", "도시락"])
+        v = service.analyze(eid, "준비물: 장난감, 도시락\n장난감을 가져오면 안 됩니다.")
+        self.assertEqual([f["name"] for f in v["plus"]["forbidden"]], ["장난감"])
+        self.assertTrue(next(i for i in v["items"] if i["name"] == "장난감").get("conflict"))   # 통신문 준비물과 금지가 겹치면 보호자에게 알린다
+
     def test_limits_written_only_in_the_notice(self):
         self.assertEqual(guard.annotate("과자", "과자는 한 봉지만! 탄산음료 X")["quantity"], "한 봉지만")
         self.assertEqual(guard.annotate("우산", "우산은 필요한 학생만 준비하세요.")["conditional"], "needed")
@@ -370,7 +379,7 @@ class SimpleExtractTest(unittest.TestCase):
     TODAY = Date(2026, 11, 19)
 
     def test_samples(self):
-        for key, n_items in (("a", 8), ("b", 6), ("c", 6)):
+        for key, n_items in (("a", 10), ("b", 6), ("c", 6)):
             s = simple_extract.sample(key, self.TODAY)
             ev = simple_extract.extract(s["text"], s["title"], s["posted"], self.TODAY)["events"][0]
             self.assertEqual((ev["date"], len(ev["items"])), ("2026-11-20", n_items), key)
@@ -385,6 +394,18 @@ class SimpleExtractTest(unittest.TestCase):
         self.assertIn("확인해 주세요", ex["events"][0]["notes"])
         ex = simple_extract.extract("체험학습\n일시: 1월 8일", today=Date(2026, 12, 28))
         self.assertEqual(ex["events"][0]["date"], "2027-01-08")
+
+    def test_worn_things_and_relative_deadline(self):
+        a = simple_extract.sample("a", self.TODAY)
+        ev = simple_extract.extract(a["text"], a["title"], a["posted"], self.TODAY)["events"][0]
+        self.assertIn("간편한 복장", ev["items"])                 # 입고 가는 것도 챙길 것에 넣는다
+        self.assertIn("운동화", ev["items"])
+        self.assertEqual(guard.annotate("운동화")["kind"], "wear")
+        ex = simple_extract.extract("체험학습 안내\n일시: 11월 20일\n준비물: 물\n슬리퍼는 신고 오지 않습니다. 실내화를 신고 옵니다.", today=self.TODAY)
+        self.assertEqual(ex["events"][0]["items"], ["물", "실내화"])
+        c = simple_extract.sample("c", self.TODAY)
+        evs = simple_extract.extract(c["text"], c["title"], c["posted"], self.TODAY)["events"]
+        self.assertEqual([(e["kind"], e["date"], e["items"][:1]) for e in evs][1], ("deadline", "2026-11-20", ["회신서"]))
 
     def test_split_items_keeps_parentheses(self):
         self.assertEqual(simple_extract.split_items("필기도구(연필 2자루, 지우개), 물통 등"), ["필기도구(연필 2자루, 지우개)", "물통"])

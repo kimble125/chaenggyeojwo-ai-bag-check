@@ -21,6 +21,9 @@ _BAN_VERB = re.compile(
 _BAN_MARK = re.compile(
     r"([가-힣A-Za-z0-9 ·,、/]{1,40}?)\s*(?:등)?\s*(?:은|는|의)?\s*"
     r"(?:(?:지참|반입|사용|휴대|소지)\s*)?(불가|금지|안\s?됩니다|안\s?돼요|안\s?됨|[X✕×])(?![가-힣A-Za-z])")
+_BAN_IF = re.compile(                                # "장난감을 가져오면 안 됩니다"
+    r"([^.!?()（）\n]{1,60}?)\s*(?:은|는|을|를|도)?\s*"
+    r"(?:가져오면|가져오시면|가지고\s?오면|갖고\s?오면|지참하면|들고\s?오면|넣어\s?오면|휴대하면|소지하면)\s*안\s?(?:됩니다|돼요|돼|됨|되어요|된다|되요)")
 _NOT_NEEDED = re.compile(r"([가-힣A-Za-z0-9 ·,]{1,30}?)\s*(?:은|는)\s*(?:필요\s?없|준비하지\s?않아도|가져오지\s?않아도)")
 _NEEDED_ONLY = re.compile(r"필요한\s*(?:학생|사람|어린이|친구)|해당\s*(?:학생|자)|희망자|복용\s*중")
 _RAIN_ONLY = re.compile(r"우천\s?시|비\s?(?:가)?\s?(?:오면|올\s?경우|올\s?때)")
@@ -30,6 +33,7 @@ _CONSUMED = re.compile(r"간식|과자|음료|물티슈|휴지|티슈|비닐|봉
 _KEEP = re.compile(r"도시락\s?통|물통|텀블러|수저|젓가락")
 _TRIM = re.compile(r"^[\s※\-•·*\d.)]+|[\s.,·]+$")
 _STOP = {"", "등", "것", "물건", "물품", "기타", "그 외", "준비물"}
+_ONE = {"캔", "껌", "칼", "돈", "물", "빵", "떡", "총", "공", "술", "약"}      # 한 글자여도 물건인 것
 
 # 금지된 것이 어떤 준비물의 '안 되는 대체물'인지(같은 자리에 놓일 수 있는 것)
 _SUBSTITUTE_OF = [
@@ -51,7 +55,8 @@ def _names(chunk: str) -> list[str]:
     for part in _SPLIT_NAMES.split(chunk):
         n = _clean(part)
         n = re.sub(r"^(?:그리고|또한|단|특히)\s*", "", n)
-        if n not in _STOP and 1 < len(n) <= 16 and not re.search(r"습니다|세요|니다$", n):
+        n = re.sub(r"(?<=[가-힣])(?:을|를)$", "", n)          # "장난감을" → "장난감"
+        if n not in _STOP and (1 < len(n) <= 16 or n in _ONE) and not re.search(r"습니다|세요|니다$|가져오|가지고|갖고|지참하|들고", n):
             out.append(n)
     return out
 
@@ -87,8 +92,10 @@ def find_forbidden(text: str) -> list[dict]:
     """알림장 글에서 가져오면 안 되는 것. [{name, evidence}] (같은 이름은 한 번만)"""
     seen, out = set(), []
     for line in lines_of(text):
-        chunks = [m.group(1) for m in _BAN_VERB.finditer(line)]
-        chunks += [m.group(1) for m in _BAN_MARK.finditer(line)]
+        chunks = [m.group(1) for m in _BAN_IF.finditer(line)]
+        rest = _BAN_IF.sub(" ", line)                      # 위에서 읽은 토막은 아래 규칙이 다시 읽지 않게 뺀다
+        chunks += [m.group(1) for m in _BAN_VERB.finditer(rest)]
+        chunks += [m.group(1) for m in _BAN_MARK.finditer(rest)]
         for chunk in chunks:
             chunk = chunk.split(":")[-1].split("：")[-1]
             for n in _names(chunk):

@@ -123,10 +123,22 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
             items += split_items(re.split(r"[:：]", l, maxsplit=1)[-1])
         elif re.match(r"^[\d.\s]*선택\s*[:：]", l):
             items += [f"{x}(선택)" for x in split_items(re.split(r"[:：]", l, maxsplit=1)[-1])]
-    for l in lines:                                   # '체육복 입고 오기'처럼 준비물 줄 밖에 있는 입고 갈 것
-        m = re.search(r"([가-힣]{2,6})\s*(?:을|를)?\s*입고\s*오기", l)
-        if m and not any(m.group(1) in i for i in items):
-            items.append(f"{m.group(1)} 입고 오기")
+    for l in lines:                                   # 준비물 줄 밖에 있는 입고·신고 갈 것("체육복 입고 오기", "간편한 복장과 운동화를 착용합니다")
+        if re.match(r"^[\d.\s]*(준비물|챙길 것|지참물|선택)", l):
+            continue
+        for seg in re.split(r"(?<=[.!?])\s+", l):
+            if re.search(r"않|말아|마세요|금지|불가|안\s?됩|안\s?돼", seg):
+                continue                               # "슬리퍼는 신고 오지 않습니다" 같은 금지 문장은 건너뛴다
+            m = re.search(r"([가-힣 ]{2,24}?)\s*(?:을|를)?\s*입고\s*오기", seg)
+            if m and not any(m.group(1).strip() in i for i in items):
+                items.append(f"{m.group(1).strip()} 입고 오기")
+                continue
+            m = re.search(r"([가-힣 ]{2,24}?)\s*(?:을|를)\s*(?:착용|입고\s*(?:옵니다|와요|오세요|등교)|신고\s*(?:오기|옵니다|와요|오세요))", seg)
+            if m:
+                for name in re.split(r"\s*(?:,|와\s|과\s|및\s)\s*", re.sub(r"^.*[:：]\s*", "", m.group(1))):
+                    name = name.strip()
+                    if 1 < len(name) <= 12 and not any(name in i for i in items):
+                        items.append(name)
     tgt = re.search(r"\d학년(?:\s*\d반)?", " ".join(lines[:2]))
     events = [{
         "title": ttl, "kind": "event", "date": when.isoformat(), "start_time": start, "end_time": end,
@@ -134,11 +146,18 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
         "target": tgt.group(0) if tgt else None,
         "items": items, "ai_items": [], "notes": "\n".join(notes),
     }]
-    for l in lines:                                   # 회신 마감은 따로 일정으로
-        m = md.search(l)
-        if m and re.search(r"까지\s*(제출|회신|내기)", l) and _date(m, base):
-            events.append({"title": f"{ttl} 회신 마감", "kind": "deadline", "date": _date(m, base).isoformat(),
-                           "start_time": None, "end_time": None, "location": None, "lat": None, "lon": None,
-                           "outdoor": False, "target": None, "items": ["참가 신청서"], "ai_items": [], "notes": l})
+    for l in lines:                                   # 회신 마감은 따로 일정으로("11월 20일까지 제출", "내일까지 내기")
+        if not re.search(r"까지\s*(제출|회신|내기|내\s?주)", l):
+            continue
+        m, rel = md.search(l), re.search(r"(오늘|내일|모레)\s*까지", l)
+        due = _date(m, base) if m else base + timedelta(days={"오늘": 0, "내일": 1, "모레": 2}[rel.group(1)]) if rel else None
+        if not due:
+            notes.append("회신 마감 날짜를 못 읽었어요. 확인해 주세요.")
+            events[0]["notes"] = "\n".join(notes)
+            continue
+        doc = re.search(r"(참가\s?신청서|회신서|신청서|동의서|확인서)", l)
+        events.append({"title": f"{ttl} 회신 마감", "kind": "deadline", "date": due.isoformat(),
+                       "start_time": None, "end_time": None, "location": None, "lat": None, "lon": None,
+                       "outdoor": False, "target": None, "items": [doc.group(1) if doc else "회신서"], "ai_items": [], "notes": l})
     return {"summary": f"{ttl}: 준비물 {len(items)}개를 찾았어요 (규칙으로 읽은 예시 모드, 꼭 확인해 주세요)",
             "events": events, "usage": {"input": 0, "output": 0, "model": "규칙(모델 호출 없음)"}}
