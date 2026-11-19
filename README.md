@@ -1,4 +1,13 @@
-# 챙겨줘 (chaenggyeojwo) · 엘리스 AI 챌린지 2026
+# 가방쏙 (저장소 이름 chaenggyeojwo) · 엘리스 AI 챌린지 2026
+
+> **지금(2026-11-20):** 서비스 이름은 **가방쏙**(옛 이름 챙겼지), 팀명은 **잘챙겼조**. 가정통신문을 넣으면 일정·준비물·가져오지 않는 것이 정리되고, 아이가 미션처럼 스스로 가방을 싼다.
+>
+> - 한눈에 보기: `docs/index.html` · 눌러 보는 프로토타입(서버 없이 브라우저 안에서 도는 예시 판): `docs/demo/` (GitHub Pages를 켜면 https://kimble125.github.io/chaenggyeojwo-ai-bag-check/ )
+> - 2쪽 기획안: `plan/gabangssok_plan.pdf`, `plan/gabangssok_plan.docx` (원고는 `plan/build_plan.py`)
+> - 실제 판(FastAPI + Claude API + MCP 캘린더): `poc/donghyun/` · 설치 없이 도는 예시 서버: `cd poc/donghyun && python3 demo_server.py`
+> - 화면이나 계산 코드를 고친 뒤: `cd poc/donghyun && python3 -m unittest discover -s tests && python3 build_site.py`
+>
+> 아래는 11/16까지의 기록이며 주제와 이름이 그 뒤에 바뀌었다.
 
 팀 **잘챙겼조(표기 확인 중: Slack은 '잘챙겨조')** (김호연, 김동현)의 엘리스 AI 챌린지 작업 저장소. (2026-11-19 확인: GitHub에서 공개 저장소로 열려 있다. 개인정보·비밀값·주최 측 메일 원문을 올리지 않는다.)
 

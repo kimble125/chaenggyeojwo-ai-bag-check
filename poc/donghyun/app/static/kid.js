@@ -163,9 +163,11 @@ function renderLay() {
     b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
     say(speakOf(it));
   }));
-  const nReq = required().length, nOpt = items.length - nReq;
-  $("#layCount").textContent = nReq || items.length;
-  $("#layMore").textContent = nReq && nOpt ? ` · 추천 ${nOpt}개` : "";
+  const nReq = required().length, nOpt = items.length - nReq, nLeft = required().filter((i) => !i.checked).length;
+  const resume = nReq > 0 && nLeft > 0 && nLeft < nReq;        // 이미 챙기던 가방: 남은 것만 말한다(예보가 바뀌어 하나가 더 생긴 때 포함)
+  $("#layCount").textContent = resume ? nLeft : (nReq || items.length);
+  $("#layWord").textContent = resume ? "개만 더 챙기면 돼" : "개를 펼쳐 놓자";
+  $("#layMore").textContent = !resume && nReq && nOpt ? ` · 추천 ${nOpt}개` : "";
   const wx = wxLine(), wl = $("#wxLine");
   wl.hidden = !wx; wl.textContent = wx;
   const ban = banList(), strip = $("#banStrip");

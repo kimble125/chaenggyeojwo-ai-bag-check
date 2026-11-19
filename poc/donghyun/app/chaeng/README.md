@@ -1,4 +1,4 @@
-# 챙겼지 추가 기능 (호연 몫, 2026-11-19)
+# 가방쏙(옛 이름 챙겼지) 추가 기능 (호연 몫, 2026-11-19–20)
 
 동현님의 본체(`poc/donghyun/app`) 위에 얹은 부분이다. 본체의 화면·저장소·알림을 그대로 쓰고 새 주소는 `/api/plus/…` 아래에 둔다.
 
@@ -15,6 +15,8 @@
 | 평소 일정 | 통신문 없이 상황만 골라 일정을 만든다(기본 준비물이 추천으로 들어간다) | `service.quick_event` |
 | 예시 모드 | 모델을 부르지 않고 규칙으로 통신문을 읽는다. API 키가 없어도 흐름이 돈다 | `simple_extract.py`, `../../demo_server.py` |
 | 화면 구조도 | 넓힌 그림의 찾기(수납)·돌아오기(귀가) 화면 순서 설계안. `/static/design/uiux.html` | `../static/design/uiux.html` |
+| 서버 없이 도는 판 | 같은 화면과 같은 계산 코드를 브라우저 안(Pyodide)에서 돌린다. `python3 build_site.py` → 저장소의 `docs/demo`. 화면의 `/api/` 요청을 `demo_server.dispatch()`로 보낸다 | `../../build_site.py`, `../../web_demo/` |
+| 마스코트·진행 막대 | 가방 친구 쏙이(이미지 생성 AI로 만든 그림), "가방 속 n / m" 막대, 예보에서 읽은 날씨 한 줄 | `../static/mascot/`, `../static/kid.js` |
 
 ## 데이터의 근거
 
@@ -24,7 +26,7 @@
 
 ```bash
 cd poc/donghyun
-python3 -m unittest discover -s tests -v      # 시험 44개(모델·네트워크 없음)
+python3 -m unittest discover -s tests -v      # 시험 48개(모델·네트워크 없음)
 python3 demo_server.py                        # http://127.0.0.1:6111 (파이썬 3.10 이상, 설치 없음)
 ```
 
