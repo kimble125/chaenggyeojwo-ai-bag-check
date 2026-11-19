@@ -1,6 +1,11 @@
 # 기획안 (A4 2쪽 이내)
 
-원고는 `plan/proposal.md`에 쓰고 PDF로 낸다. 넣을 것은 주최 측이 정한 8가지다.
+넣을 것은 주최 측이 정한 8가지다. 원고는 `plan/build_plan.py`의 ROWS 하나이고, 거기서 세 가지를 만든다(2026-11-20).
+
+- `python3 plan/build_plan.py` → `gabangssok_plan.docx`(Word), `gabangssok_plan.html`(인쇄용), `proposal.md`(글), `img/`(화면 줄, 동작 구조도)
+- `python3 plan/render_pdf.py` → `gabangssok_plan.pdf`(브라우저 없이 만든 PDF, A4 2쪽. 글자가 그림으로 들어가 복사는 안 됨)
+- 글자가 복사되는 PDF가 필요하면 `gabangssok_plan.html`을 브라우저에서 열어 A4로 인쇄 → PDF로 저장
+- Word 파일의 쪽 나눔은 Word에서 열어 확인하지 못했다(만든 컴퓨터에 Word가 없음). 내는 것은 PDF를 권한다
 
 1. 참가 정보: 팀명 잘챙겼조 / 구성원
 2. 문제 정의: 해결하고 싶은 문제와 그 문제를 겪는 사람
