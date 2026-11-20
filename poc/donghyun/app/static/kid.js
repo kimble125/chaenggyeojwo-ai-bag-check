@@ -23,6 +23,12 @@ const ICONS = [
 const iconFor = (it) => esc(it.meta?.emoji || (ICONS.find(([re]) => re.test(it.name)) || [, "🎒"])[1]);
 
 // "물(음료)" → 큰 글씨 "물", 작은 글씨 "음료"
+// 받침에 맞는 조사를 고른다(한글로 끝나지 않으면 둘 다 적는다)
+function josa(word, withFinal, noFinal) {
+  const ch = String(word || "").trim().replace(/\s*[(（][^)）]*[)）]$/, "").replace(/["'”’\s]+$/, "").slice(-1), code = ch.charCodeAt(0);
+  if (!(code >= 0xac00 && code <= 0xd7a3)) return `${withFinal}(${noFinal})`;
+  return (code - 0xac00) % 28 ? withFinal : noFinal;
+}
 function split(name) {
   const m = name.match(/^(.*?)\s*[(（](.+?)[)）]\s*$/);
   return m ? [m[1], m[2]] : [name, ""];
@@ -267,7 +273,7 @@ $("#recBack").addEventListener("click", renderLay);
 function renderWarn() {
   const f = warnQ[0];
   if (!f) return afterWarn();
-  $("#warnLead").textContent = `${f.name}이(가) 보여요`;
+  $("#warnLead").textContent = `${f.name}${josa(f.name, "이", "가")} 보여요`;
   $("#warnCard").innerHTML = `<span class="ic">🙅</span><span class="nm">${esc(f.name)}</span><span class="nope">가져가지 않아요</span>`;
   $("#warnWhy").textContent = f.evidence ? `알림장: “${f.evidence}”` : "알림장에서 가져오지 말라고 했어요";
   show("s-warn");
@@ -298,7 +304,7 @@ function renderOne() {
   const big = $("#bigCard");
   big.className = "big in";
   big.innerHTML = `<span class="ic">${iconFor(it)}</span><span class="nm">${esc(nm)}</span>${cond ? `<span class="cond">${esc(cond)}</span>` : ""}` +
-    `${nope.length ? `<span class="nope">${esc(nope.join(", "))}은(는) 안 돼요</span>` : ""}${hint ? `<span class="hint">${esc(hint)}</span>` : ""}${isOpt(it) ? `<span class="hint">추천이라 안 넣어도 돼요</span>` : ""}`;
+    `${nope.length ? `<span class="nope">${esc(nope.join(", "))}${josa(nope[nope.length - 1], "은", "는")} 안 돼요</span>` : ""}${hint ? `<span class="hint">${esc(hint)}</span>` : ""}${isOpt(it) ? `<span class="hint">추천이라 안 넣어도 돼요</span>` : ""}`;
   big.setAttribute("aria-label", speakOf(it));
   $("#bagIcon").classList.remove("show");
   $("#putIn").textContent = isWear(it) ? "꺼내 놨어!" : "넣었어!";
@@ -404,7 +410,7 @@ function renderHome() {
 }
 $("#homeReport").addEventListener("click", () => once(async () => {
   const r = await api(`/api/plus/events/${ev.id}/return/report`, { method: "POST" });
-  $("#sentLead").textContent = r.summary.left.length ? `${r.summary.left.join(", ")}은(는) 내일 학교에서 찾아보자` : "두고 온 것 없이 잘 챙겨 왔어";
+  $("#sentLead").textContent = r.summary.left.length ? `${r.summary.left.join(", ")}${josa(r.summary.left[r.summary.left.length - 1], "은", "는")} 내일 학교에서 찾아보자` : "두고 온 것 없이 잘 챙겨 왔어";
   $("#again").hidden = true;                                         // 돌아오기 뒤에는 가방 싸기 체크를 푸는 버튼을 숨긴다
   show("s-sent");
 }));

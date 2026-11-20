@@ -1,4 +1,10 @@
 /* 부모 화면 추가 기능(호연 몫). app.js 뒤에 읽는다. app.js 는 거의 그대로 두고 여기서 덧붙인다.
+// 받침에 맞는 조사를 고른다(한글로 끝나지 않으면 둘 다 적는다)
+function josa(word, withFinal, noFinal) {
+  const ch = String(word || "").trim().replace(/\s*[(（][^)）]*[)）]$/, "").replace(/["'”’\s]+$/, "").slice(-1), code = ch.charCodeAt(0);
+  if (!(code >= 0xac00 && code <= 0xd7a3)) return `${withFinal}(${noFinal})`;
+  return (code - 0xac00) % 28 ? withFinal : noFinal;
+}
    - 통신문을 캘린더에 넣은 뒤 금지·조건·근거를 붙인다(/api/plus/…/analyze)
    - 일정 상세: 가져오지 않는 것, 추천(받아들이기), 보호자가 정할 것, 아이 결과와 칭찬 스티커, 달력 말투, 돌아오기
    - 설정: 아이 정보(추천에 씀) · 통신문 탭: 알림장 없는 평소 일정
@@ -42,7 +48,7 @@
       const nm = box.nextElementSibling, m = it.meta || {};
       const notes = [];
       if (m.condition) notes.push(`조건: ${m.condition}`);
-      if (m.not_accepted?.length) notes.push(`${m.not_accepted.join(", ")}은(는) 안 돼요`);
+      if (m.not_accepted?.length) notes.push(`${m.not_accepted.join(", ")}${josa(m.not_accepted[m.not_accepted.length - 1], "은", "는")} 안 돼요`);
       if (it.guardian) notes.push("필요한 아이만 · 보호자가 정해요(아이 미션에는 안 나와요)");
       else if (m.conditional === "rain") notes.push(it.optional ? "비 올 때만(지금은 비 소식 없음)" : "비 소식이 있어 챙겨요");
       else if (m.optional_by_notice) notes.push("통신문에 '선택'이라고 적혀 있어요");
