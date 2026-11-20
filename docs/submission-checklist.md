@@ -1,7 +1,7 @@
 # 제출 점검표
 
-> 2026-11-20 아침 기준. 체크는 "파일에 들어 있음"이고, 사람이 눈으로 읽고 확인한 것은 따로 적는다.
-> 낼 것: 기획안 `plan/gabangssok_plan.pdf` + 주소 하나 https://kimble125.github.io/chaenggyeojwo-ai-bag-check/ (GitHub Pages를 켠 뒤)
+> 2026-11-20 16시 기준. 체크는 "파일에 들어 있음"이고, 사람이 눈으로 읽고 확인한 것은 따로 적는다.
+> 낼 것: 기획안 `plan/gabangssok_plan.pdf` + 주소 하나 https://kimble125.github.io/chaenggyeojwo-ai-bag-check/ (2026-11-20 15:56에 켬)
 
 ## 기획안 (A4 2쪽 이내, PDF로 냄)
 - [x] 참가 정보: 팀명 잘챙겼조, 구성원 → **신청서에 적은 팀명 표기와 같은지 호연 확인 필요**
@@ -13,13 +13,14 @@
 - [x] 차별점: 기존 서비스·범용 AI와 견준 것
 - [x] 역할 분담
 - [x] 생성형 AI 활용 범위를 밝힘(5번 끝)
-- [x] 2쪽: PDF 2쪽 확인(본문 10.6pt). Word 파일은 Word에서 쪽수를 확인하지 못함 → PDF를 냄
+- [x] 2쪽: 내는 PDF(`plan/gabangssok_plan.pdf`, 브라우저 인쇄본, 글자가 살아 있음)가 2쪽인 것을 확인. Word 파일은 Word에서 쪽수를 확인하지 못함 → PDF를 냄
 - [ ] 호연과 동현님이 한 번씩 읽음
 
 ## PoC
 - [x] 링크는 URL 하나, 로그인 없이 열림(서버 없이 브라우저 안에서 도는 예시 판)
-- [ ] GitHub Pages 켜기(저장소 Settings > Pages > Branch `hoyeon`, 폴더 `/docs`)
-- [ ] 켠 뒤 다른 기기(폰, 다른 브라우저)에서 첫 화면 → 프로토타입 → 다섯 단계가 끝까지 도는지 확인
+- [x] GitHub Pages 켬(저장소 Settings > Pages > Branch `hoyeon`, 폴더 `/docs`). `hoyeon` 브랜치의 `docs/`를 고쳐 올리면 1–2분 뒤 주소에 반영됨 → **제출 뒤에는 이 브랜치의 `docs/`를 바꾸지 않기**
+- [x] 공개 주소에서 로그인 없이 열림(쿠키 없는 요청으로 200), 노트북 크기 창에서 다섯 단계를 끝까지 눌러 봄, 폰 크기 창(390px)에서 첫 화면·프로토타입·아이 화면 확인(2026-11-20 16시, Chromium 계열 한 대)
+- [ ] 실제 폰(아이폰 Safari, 안드로이드 Chrome)과 다른 브라우저에서 한 번씩 열어 보기(호연·동현님)
 - [x] 심사 기간(–12/10)에 유지할 것: GitHub Pages만(서버·API 키·잔액 없음). 바깥 의존: 실행 도구(Pyodide, jsDelivr), 글꼴(Google Fonts), 날씨(Open-Meteo). 날씨가 안 되면 가정한 날씨로 돎
 - [ ] (선택) 동현님 본체 서버(Claude API 연결)를 따로 열지 정하기. 연다면 Notion의 코드 재확인 메모 ① 묶음부터
 
