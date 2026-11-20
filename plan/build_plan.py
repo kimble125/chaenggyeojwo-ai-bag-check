@@ -36,7 +36,7 @@ META = "엘리스 AI 챌린지 2026 · 성인 부문"
 # 종류: p 문단 / h 작은 제목 / b 글머리표 / n 번호가 글 안에 든 줄 / img 그림(파일, 너비 mm, 설명)
 ROWS = [
     ("1. 참가 정보", [
-        ("p", "**팀명** 잘챙겼조　**구성원** 김호연(대표), 김동현"),
+        ("p", "**팀명** 잘챙겨조　**구성원** 김호연(대표), 김동현"),
     ]),
     ("2. 문제 정의", [
         ("h", "해결하고 싶은 문제"),
@@ -276,7 +276,7 @@ def build_docx(path):
         p.paragraph_format.space_before = Pt(2)
         write_runs(p, line, size=8, color=(70, 70, 82))
     core = doc.core_properties
-    core.title, core.author, core.subject = TITLE, "잘챙겼조(김호연, 김동현)", META
+    core.title, core.author, core.subject = TITLE, "잘챙겨조(김호연, 김동현)", META
     doc.save(path)
 
 
@@ -297,7 +297,7 @@ def build_html(path):
                 body.append(f'<p class="{kind}">{rich(it[1])}</p>')
         rows.append(f"<tr><th>{html.escape(label)}</th><td>{''.join(body)}</td></tr>")
     page = f"""<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><title>{TITLE} · 잘챙겼조</title>
+<html lang="ko"><head><meta charset="utf-8"><title>{TITLE} · 잘챙겨조</title>
 <style>
   @page {{ size: A4; margin: 11mm 14mm; }}
   * {{ box-sizing: border-box; }}
