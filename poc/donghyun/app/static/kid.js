@@ -54,7 +54,7 @@ function speakOf(it) {
 }
 
 let ev = null, plus = null, mode = { demo: false, ai: true }, items = [], queue = [], qi = 0, fromPhoto = false;
-let recQ = [], warnQ = [], busy = false, backTo = "s-lay";
+let recQ = [], warnQ = [], busy = false, backTo = "s-lay", skipped = [];
 let recBudget = 4;                                         // 아이에게 한 번에 묻는 추천은 4개까지(나머지는 부모 화면에)
 
 async function api(path, opt = {}) {
@@ -93,7 +93,8 @@ async function once(fn) {
 /* ---------- 일정 불러오기 ---------- */
 function adopt(v) {
   ev = v; plus = v.plus || null;
-  items = v.items.filter((i) => !i.guardian && !i.blocked);   // 보호자가 정할 것(약)과 금지와 겹친 자동 추천은 아이 미션에 넣지 않는다
+  items = v.items.filter((i) => !i.guardian && !i.blocked && !i.skipped);   // 보호자가 정할 것(약), 금지와 겹친 자동 추천, 엄마가 이번엔 뺀 것은 아이 미션에 넣지 않는다
+  skipped = v.items.filter((i) => i.skipped);
 }
 async function load(id) {
   try { adopt(await api(`/api/plus/events/${id}`)); }
@@ -170,6 +171,9 @@ function renderLay() {
   $("#layMore").textContent = !resume && nReq && nOpt ? ` · 추천 ${nOpt}개` : "";
   const wx = wxLine(), wl = $("#wxLine");
   wl.hidden = !wx; wl.textContent = wx;
+  const sk = $("#skipLine");                                   // 엄마가 이번엔 뺀 것: 금지(빨강)와 다르게 회색으로
+  sk.hidden = !skipped.length;
+  if (skipped.length) sk.textContent = `이번엔 안 가져가도 돼(엄마가 뺐어): ${skipped.map(nameOf).join(", ")}`;
   const ban = banList(), strip = $("#banStrip");
   strip.hidden = !ban.length;
   if (ban.length) strip.innerHTML = `<b>🙅 이건 두고 가요</b>${ban.map((f) => esc(f.name)).join(" · ")}`;

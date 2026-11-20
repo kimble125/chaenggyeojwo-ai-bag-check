@@ -50,7 +50,11 @@
       if (m.quantity) notes.push(`수량: ${m.quantity}`);
       if (it.blocked) notes.push("통신문이 가져오지 말라고 한 것과 겹쳐 아이 화면에는 안 나와요");
       if (it.conflict) notes.push("⚠️ 통신문의 '가져오지 않는 것'과 겹쳐요. 확인해 주세요");
+      if (it.skipped) notes.push("이번엔 안 가져가요(아이 화면에 회색으로 알려 줘요)");
       nm.insertAdjacentHTML("beforeend", notes.map((n) => `<span class="why">${esc(n)}</span>`).join(""));
+      if (it.skipped) { nm.classList.add("skipped"); box.disabled = true; }
+      if (!it.guardian && !it.blocked && ["notice", "user", "recommend"].includes(it.source))   // 이번엔 빼기: 지우지 않고 이번만 뺀다
+        nm.insertAdjacentHTML("afterend", `<button class="ghost small skipbtn" data-skip="${it.id}" data-on="${it.skipped ? 1 : 0}">${it.skipped ? "다시 챙기기" : "이번엔 빼기"}</button>`);
     }
     // 근거 줄은 한 번만(같은 줄이 항목마다 되풀이되지 않게)
     const ev = [...new Set(v.items.filter((i) => i.source === "notice" && i.meta?.evidence).map((i) => i.meta.evidence))];
@@ -67,7 +71,7 @@
       ${p.guardian_recs.length ? `<p class="hint"><b>보호자가 정해요:</b> ${p.guardian_recs.map((r) => `${esc(r.emoji)} ${esc(r.name)} <button class="ghost small" data-acc="${esc(r.name)}">넣기</button>`).join(" ")}<br>약은 넣어도 아이 화면에는 나오지 않아요.</p>` : ""}</div>` : "";
     const stickerRow = MODE.stickers.map((x) => `<button data-stk="${esc(x)}" aria-label="칭찬 스티커 ${esc(x)}">${esc(x)}</button>`).join("");
     const result = v.kind !== "deadline" && v.items.length ? `<div class="card plus"><strong>아이 미션</strong>
-      <p class="sum">준비물 ${s.counted} · 넣음 ${s.packed} · 아직 ${s.left.length}${s.left.length ? ` (${s.left.map(esc).join(", ")})` : ""}${s.optional ? ` · 추천 ${s.optional} 중 ${s.optional_packed}` : ""}${s.open_alerts.length ? ` · 빼야 할 것 ${s.open_alerts.map(esc).join(", ")}` : ""}</p>
+      <p class="sum">준비물 ${s.counted}${s.skipped?.length ? ` (이번엔 뺀 것 ${s.skipped.length})` : ""} · 넣음 ${s.packed} · 아직 ${s.left.length}${s.left.length ? ` (${s.left.map(esc).join(", ")})` : ""}${s.optional ? ` · 추천 ${s.optional} 중 ${s.optional_packed}` : ""}${s.open_alerts.length ? ` · 빼야 할 것 ${s.open_alerts.map(esc).join(", ")}` : ""}</p>
       <div class="stk-row">${stickerRow}</div>
       <div class="chip-add"><input id="stkMsg" maxlength="40" placeholder="한마디(안 써도 돼요). 예: 스스로 챙겨서 멋져"></div>
       <p class="hint" id="stkGiven">${p.stickers.length ? `준 스티커: ${p.stickers.map((x) => esc(x.sticker)).join(" ")}` : "스티커를 누르면 아이 스티커판에 붙어요"}</p>
@@ -86,6 +90,9 @@
       if (!text) return toast("통신문 글을 붙여 넣어 주세요");
       try { await plusApi(`/events/${id}/analyze`, { method: "POST", body: { text } }); openSheet(id); } catch (e) { toast("⚠️ " + e.message); }
     });
+    $$("#sheet [data-skip]").forEach((b) => b.addEventListener("click", async () => {
+      try { await plusApi(`/events/${id}/items/${b.dataset.skip}/skip`, { method: "POST", body: { skipped: b.dataset.on !== "1" } }); openSheet(id); } catch (e) { toast("⚠️ " + e.message); }
+    }));
     $$("#sheet [data-acc]").forEach((b) => b.addEventListener("click", async () => { await plusApi(`/events/${id}/recs/accept`, { method: "POST", body: { name: b.dataset.acc } }); openSheet(id); }));
     $$("#sheet [data-dec]").forEach((b) => b.addEventListener("click", async () => { await plusApi(`/events/${id}/recs/decline`, { method: "POST", body: { name: b.dataset.dec } }); openSheet(id); }));
     $$("#sheet [data-stk]").forEach((b) => b.addEventListener("click", async () => {

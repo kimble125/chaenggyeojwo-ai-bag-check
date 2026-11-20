@@ -304,6 +304,22 @@ class ServiceTest(unittest.TestCase):
         again = next(i for i in db.get_event(eid)["items"] if i["name"] == "우산")
         self.assertEqual((again["id"], again["checked"], again["reason"]), (first["id"], True, "b"))
 
+    def test_skip_this_time_is_not_a_ban(self):
+        eid = fresh_event(["도시락", "물통"])
+        service.analyze(eid, "준비물: 도시락, 물통")
+        v = service.view(eid)
+        bottle = next(i for i in v["items"] if i["name"] == "물통")
+        db.set_item_checked(bottle["id"], True)
+        v = service.set_skipped(eid, bottle["id"], True)
+        b2 = next(i for i in v["items"] if i["name"] == "물통")
+        self.assertTrue(b2["skipped"] and b2["optional"] and not b2["checked"])
+        self.assertEqual((v["plus"]["summary"]["counted"], v["plus"]["summary"]["skipped"], v["plus"]["forbidden"]), (1, ["물통"], []))
+        db.set_item_checked(next(i for i in v["items"] if i["name"] == "도시락")["id"], True)
+        self.assertTrue(service.view(eid)["plus"]["summary"]["can_finish"])          # 뺀 것은 끝을 막지 않는다
+        v = service.set_skipped(eid, bottle["id"], False)
+        self.assertEqual(v["plus"]["summary"]["counted"], 2)                        # 다시 챙기기
+        self.assertIsNone(service.set_skipped(eid, 999999, True))
+
     def test_alert_removed(self):
         eid = fresh_event(ITEMS_A)
         service.analyze(eid, NOTICE_A)

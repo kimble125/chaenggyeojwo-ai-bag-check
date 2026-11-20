@@ -140,6 +140,9 @@ def view(eid: int) -> dict | None:
                 it["blocked"] = it["optional"] = True    # 자동 추천이 통신문의 금지와 겹치면 아이에게 보이지 않는다
             else:
                 it["conflict"] = True                    # 통신문 준비물이 금지와 겹치면 지우지 않고 보호자에게 알린다
+        it["skipped"] = it["id"] in data.get("skipped", [])
+        if it["skipped"]:                                # 보호자가 '이번엔 빼기'로 둔 것: 지우지 않고, 세지 않고, 아이 미션에 넣지 않는다
+            it["optional"] = True
     alerts = [f | {"flagged": f["name"] in data["flagged"], "removed": f["name"] in data["removed"]} for f in data["forbidden"]]
     ev["plus"] = {
         "analyzed": data["analyzed"], "list_open": data["list_open"], "forbidden": alerts,
@@ -156,7 +159,7 @@ def view(eid: int) -> dict | None:
 def summarize(ev: dict, data: dict) -> dict:
     """세는 항목(알림장·직접·받아들인 추천)과 선택·자동 추천을 나눠 센다. view() 가 optional 을 붙인 뒤에 부른다."""
     req = [i for i in ev["items"] if not i.get("optional")]
-    opt = [i for i in ev["items"] if i.get("optional") and not i.get("blocked") and not i.get("guardian")]
+    opt = [i for i in ev["items"] if i.get("optional") and not i.get("blocked") and not i.get("guardian") and not i.get("skipped")]
     left = [i["name"] for i in req if not i["checked"]]
     open_alerts = [n for n in data["flagged"] if n not in data["removed"]]      # 사진에 보였는데 아직 안 뺀 것만 막는다
     return {
@@ -164,6 +167,7 @@ def summarize(ev: dict, data: dict) -> dict:
         "optional": len(opt), "optional_packed": sum(1 for i in opt if i["checked"]),
         "optional_left": [i["name"] for i in opt if not i["checked"]],
         "open_alerts": open_alerts, "list_open": data["list_open"],
+        "skipped": [i["name"] for i in ev["items"] if i.get("skipped")],
         "all_packed": bool(req) and not left,
         "can_finish": bool(req) and not left and not open_alerts,     # '다 챙겼지'를 말해도 되는가
     }
@@ -285,6 +289,19 @@ def return_view(eid: int) -> dict | None:
     left = [i["name"] for i in items if not i["returned"]]
     return {"id": v["id"], "title": v["title"], "date": v["date"], "items": items,
             "summary": {"counted": len(items), "returned": len(items) - len(left), "left": left}}
+
+
+def set_skipped(eid: int, item_id: int, skipped: bool) -> dict | None:
+    """'이번엔 빼기': 통신문에는 있지만 이번엔 안 가져가기로 한 것(예: 학교에 이미 있음). 금지와는 다르다."""
+    ev = db.get_event(eid)
+    if not ev or item_id not in {i["id"] for i in ev["items"]}:
+        return None
+    data = _event_data(eid)
+    data["skipped"] = [x for x in data.get("skipped", []) if x != item_id] + ([item_id] if skipped else [])
+    _event_save(eid, data)
+    if skipped:
+        db.set_item_checked(item_id, False)
+    return view(eid)
 
 
 def set_returned(eid: int, item_id: int, returned: bool) -> dict | None:

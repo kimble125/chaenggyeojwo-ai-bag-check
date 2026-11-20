@@ -142,6 +142,13 @@ def return_get(eid: int):
     return _need(service.return_view(eid))
 
 
+@router.post("/events/{eid}/items/{iid}/skip")
+def item_skip(eid: int, iid: int, body: dict):
+    if not isinstance(body.get("skipped", True), bool):
+        raise HTTPException(400, "skipped 는 true/false 로 보내 주세요")
+    return _need(service.set_skipped(eid, iid, body.get("skipped", True)))
+
+
 @router.post("/events/{eid}/return")
 def return_set(eid: int, body: dict):
     if not isinstance(body.get("item_id"), int) or not isinstance(body.get("returned", True), bool):

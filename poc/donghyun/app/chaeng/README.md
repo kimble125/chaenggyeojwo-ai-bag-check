@@ -16,6 +16,7 @@
 | 예시 모드 | 모델을 부르지 않고 규칙으로 통신문을 읽는다. API 키가 없어도 흐름이 돈다 | `simple_extract.py`, `../../demo_server.py` |
 | 화면 구조도 | 넓힌 그림의 찾기(수납)·돌아오기(귀가) 화면 순서 설계안. `/static/design/uiux.html` | `../static/design/uiux.html` |
 | 서버 없이 도는 판 | 같은 화면과 같은 계산 코드를 브라우저 안(Pyodide)에서 돌린다. `python3 build_site.py` → 저장소의 `docs/demo`. 화면의 `/api/` 요청을 `demo_server.dispatch()`로 보낸다 | `../../build_site.py`, `../../web_demo/` |
+| 이번엔 빼기 | 통신문에는 있지만 이번엔 안 가져가는 것(예: 학교에 이미 있음)을 보호자가 표시한다. 지우지 않고, 세지 않고, 아이 화면에는 회색 한 줄로 알린다. 금지(통신문이 가져오지 말라고 한 것)와는 다른 것이다 | `service.set_skipped`, `../static/plus.js`, `../static/kid.js` |
 | 마스코트·진행 막대 | 가방 친구 쏙이(이미지 생성 AI로 만든 그림), "가방 속 n / m" 막대, 예보에서 읽은 날씨 한 줄 | `../static/mascot/`, `../static/kid.js` |
 
 ## 데이터의 근거
@@ -26,7 +27,7 @@
 
 ```bash
 cd poc/donghyun
-python3 -m unittest discover -s tests -v      # 시험 50개(모델·네트워크 없음)
+python3 -m unittest discover -s tests -v      # 시험 51개(모델·네트워크 없음)
 python3 demo_server.py                        # http://127.0.0.1:6111 (파이썬 3.10 이상, 설치 없음)
 ```
 

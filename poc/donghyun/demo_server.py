@@ -372,6 +372,7 @@ ROUTES = [
     ("POST", P + "/photo-check", r_photo_plus),
     ("POST", P + "/kid-report", lambda h, q, eid: service.kid_report(int(eid))),
     ("POST", P + "/stickers", lambda h, q, eid: (lambda b: service.give_sticker(int(eid), b["sticker"], b.get("message", ""), b.get("giver", "엄마")))(J(h))),
+    ("POST", P + r"/items/(\d+)/skip", lambda h, q, eid, iid: service.set_skipped(int(eid), int(iid), bool(J(h).get("skipped", True)))),
     ("GET", P + "/return", lambda h, q, eid: service.return_view(int(eid))),
     ("POST", P + "/return", lambda h, q, eid: (lambda b: service.set_returned(int(eid), int(b["item_id"]), bool(b.get("returned", True))))(J(h))),
     ("POST", P + "/return/report", lambda h, q, eid: service.return_report(int(eid))),
