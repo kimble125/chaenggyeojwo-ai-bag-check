@@ -118,7 +118,7 @@ def example_photo_check(eid: int, case: str = "miss") -> dict | None:
     v = service.view(eid)
     if not v:
         return None
-    todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"]]
+    todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"] and not i.get("skipped")]
     carry = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")]
     other = [i for i in todo if i not in carry]
     hide = 0 if case == "all" else 1 if (case == "glass" or len(carry) < 3) else 2

@@ -105,7 +105,7 @@ async def photo_check(eid: int, image: UploadFile = File(...)):
     if used >= DAILY_AI_CAP:
         raise HTTPException(429, "오늘 사진 확인 횟수를 다 썼어요. 하나씩 확인해 주세요")
     service._kv_set(used_key, used + 1)
-    todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"]]
+    todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"] and not i.get("skipped")]
     ask = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")]
     rest = [i for i in todo if i not in ask]
     ban = [f["name"] for f in v["plus"]["forbidden"]]

@@ -472,12 +472,21 @@ class DemoDispatchTest(unittest.TestCase):
         self.assertEqual(self.call("GET", "/static/kid.js")[0], 404)          # 화면 파일은 이 길로 열지 않는다
         self.assertEqual(self.call("POST", "/api/notice/extract", fields={})[0], 400)
         self.assertEqual(self.call("POST", "/api/plus/quick-event", json_body={"scenario": "swim_academy", "date": "2026-02-31"})[0], 400)
+        self.assertEqual(self.call("POST", "/api/plus/events/1/items/999999/skip", json_body={"skipped": True})[0], 404)
         self.assertEqual(self.call("POST", "/api/plus/events/1/return", json_body={})[0], 400)
 
     def test_photo_only_notice_uses_example_and_says_so(self):
         code, ex = self.call("POST", "/api/notice/extract", fields={}, files=[("images", "image/jpeg", b"")])
         self.assertEqual(code, 200)
         self.assertIn("예시", ex["note"])
+
+    def test_skipped_item_is_left_out_of_photo_check(self):
+        eid = self.call("POST", "/api/plus/quick-event", json_body={"scenario": "swim_academy", "date": "2026-12-05"})[1]["id"]
+        v = self.call("GET", f"/api/plus/events/{eid}")[1]
+        first = next(i for i in v["items"] if not i["optional"])
+        self.assertEqual(self.call("POST", f"/api/plus/events/{eid}/items/{first['id']}/skip", json_body={"skipped": True})[0], 200)
+        r = self.call("POST", f"/api/plus/events/{eid}/photo-check", query={"case": "all"}, files=[("image", "image/jpeg", b"")])[1]
+        self.assertNotIn(first["id"], r["seen"] + r["not_seen"])
 
     def test_reset_returns_to_seed(self):
         self.d.boot(reset=True)
