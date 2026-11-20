@@ -83,7 +83,7 @@ async function renderHome() {
   const evs = await api(`/api/events?start=${t}&end=${end}`);
   const tm = ymd(new Date(Date.now() + 86400000));
   // 저녁 6시 이후엔 내일 가방, 그 전엔 오늘 가방을 크게 보여줌
-  const focusDay = new Date().getHours() >= 18 || !evs.some((e) => e.date === t) ? tm : t;
+  const focusDay = new Date().getHours() >= 18 || !evs.some((e) => e.date === t && e.kind !== "deadline") ? tm : t;   // 오늘이 회신 마감뿐이면 내일 행사를 앞에 보여 준다
   const focus = evs.filter((e) => e.date === focusDay);
   const label = focusDay === t ? "오늘" : "내일";
   if (focus.length) {

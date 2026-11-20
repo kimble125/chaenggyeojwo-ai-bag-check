@@ -120,7 +120,8 @@ def example_photo_check(eid: int, case: str = "miss") -> dict | None:
     if not v:
         return None
     todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"] and not i.get("skipped")]
-    carry = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")]
+    carry = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")
+             and not i["meta"].get("quantity")]          # 수량이 적힌 것은 사진으로 넘기지 않고 아이가 세어 본다(본체와 같게)
     other = [i for i in todo if i not in carry]
     hide = 0 if case == "all" else 1 if (case == "glass" or len(carry) < 3) else 2
     forbidden_seen, held = [], []
@@ -305,6 +306,10 @@ def r_commit(h, q):
     created = []
     for ev in body.get("events", []):
         date.fromisoformat(ev["date"])               # 날짜가 틀리면 저장 전에 멈춘다
+        same = next((e for e in db.list_events(ev["date"], ev["date"]) if e["title"] == ev["title"] and e["kind"] == ev.get("kind", "event")), None)
+        if same:                                     # 같은 날 같은 제목이 이미 있으면 두 벌 만들지 않는다(예시 통신문을 다시 넣는 경우)
+            created.append({"id": same["id"], "title": ev["title"], "date": ev["date"], "already": True})
+            continue
         rows = [{"name": n, "source": "notice"} for n in ev.get("items") or []]
         rows += [{"name": a["name"], "source": "ai", "reason": a.get("reason")} for a in ev.get("ai_items") or []]
         eid = db.insert_event(ev | {"source_title": body.get("source_title"), "source_url": body.get("source_url")}, rows)

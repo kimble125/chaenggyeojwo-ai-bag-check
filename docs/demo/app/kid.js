@@ -129,8 +129,8 @@ if (!canSpeak) $("#speakAll").hidden = true;
 $("#speakAll").addEventListener("click", () => {
   if (!ev) return say("챙길 게 없어요");
   const on = onScreen();
-  if (on === "s-one" && queue[qi]) return say(`${speakOf(queue[qi])}. 가방에 넣었으면 넣었어 버튼을 눌러요.`);
-  if (on === "s-rec" && recQ[0]) return say(`${recQ[0].name}. ${recQ[0].why}. 챙길래, 아니면 괜찮아를 눌러요.`);
+  if (on === "s-one" && queue[qi]) return say(`${speakOf(queue[qi])}. 가방에 넣었으면 '넣었어'를 눌러 줘.`);
+  if (on === "s-rec" && recQ[0]) return say(`${recQ[0].name}. ${recQ[0].why}. 챙길래, 아니면 괜찮아를 골라 줘.`);
   if (on === "s-warn" && warnQ[0]) return say($("#warnLead").textContent + ". " + $("#warnWhy").textContent);
   if (on === "s-done") return say($("#doneTitle").textContent + ". " + $("#doneLead").textContent + (banList().length ? `. ${banList().map((f) => f.name).join(", ")}은 두고 가요.` : ""));
   if (on === "s-home") return say($("#homeTitle").textContent + ". " + $("#homeLead").textContent);
@@ -222,6 +222,7 @@ async function photoCheck(file, demoCase) {
       toast(err.status === 429 || err.status === 413 ? `${err.message}` : "사진을 못 봤어요. 하나씩 같이 볼까요?", 3500);
       return startOne(items.filter((i) => !i.checked), false);
     }
+    if (r.note) toast(r.note, 4000);                              // 예시 판: 사진을 실제로 보지 않았다는 것을 그 자리에서 알린다
     if (r.people_or_names) toast("사람이나 이름표가 찍혔어요. 다음엔 물건만 찍어요", 4000);
     try {
       for (const id of r.seen) await setChecked(id, true);          // 사진에 보인 것은 챙긴 것으로 친다(결과 화면에서 다시 뺄 수 있다)
@@ -277,7 +278,7 @@ function renderWarn() {
   $("#warnCard").innerHTML = `<span class="ic">🙅</span><span class="nm">${esc(f.name)}</span><span class="nope">가져가지 않아요</span>`;
   $("#warnWhy").textContent = f.evidence ? `알림장: “${f.evidence}”` : "알림장에서 가져오지 말라고 했어요";
   show("s-warn");
-  say(`${f.name}이 보여요. 알림장에서 가져오지 말라고 했어요. 뺐으면 뺐어를 눌러요.`);
+  say(`${f.name}이 보여요. 알림장에서 가져오지 말라고 했어요. 뺐으면 '뺐어'를 눌러 줘.`);
 }
 $("#warnDone").addEventListener("click", () => once(async () => {
   const f = warnQ[0];
@@ -308,7 +309,7 @@ function renderOne() {
   big.setAttribute("aria-label", speakOf(it));
   $("#bagIcon").classList.remove("show");
   $("#putIn").textContent = isWear(it) ? "꺼내 놨어!" : "넣었어!";
-  $("#oneTip").textContent = isWear(it) ? "내일 입을 수 있게 꺼내 놨으면 눌러요" : "눈으로 보고, 가방에 넣었으면 눌러요";
+  $("#oneTip").textContent = isWear(it) ? "내일 입게 꺼내 놨으면 눌러 줘" : "눈으로 보고, 가방에 넣었으면 눌러 줘";
   say(speakOf(it));
 }
 $("#bigCard").addEventListener("click", () => queue[qi] && say(speakOf(queue[qi])));
@@ -395,7 +396,7 @@ let home = null;
 function renderHome() {
   const s = home.summary;
   $("#homeTitle").textContent = s.counted && !s.left.length ? "다 가져왔지! 🏠" : "집에 왔다! 가방 확인하자";
-  $("#homeLead").innerHTML = !s.counted ? "다시 가져올 물건이 없어" : s.left.length ? `<b>${s.left.length}</b>개 더 찾아보자` : "두고 온 물건이 없어";
+  $("#homeLead").innerHTML = !s.counted ? (items.some((i) => i.checked) ? "다시 가져올 물건이 없어" : "아직 가방을 싸기 전이야. 가방부터 싸 보자") : s.left.length ? `<b>${s.left.length}</b>개 더 찾아보자` : "두고 온 물건이 없어";
   const g = $("#homeGrid");
   g.innerHTML = home.items.map((it, i) => `<button class="card ${it.returned ? "done" : "todo"}" data-id="${it.id}" style="--tint:var(${TINTS[i % 6]})" aria-label="${esc(it.name)} ${it.returned ? "가져왔어" : "아직"}">
     ${it.tag ? `<span class="tag wear">꼬리표</span>` : ""}<span class="ic">${iconFor(it)}</span><span class="nm">${esc(it.name)}</span><span class="state">${it.returned ? "가져왔어" : "아직"}</span></button>`).join("");

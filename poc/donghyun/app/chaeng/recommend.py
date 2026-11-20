@@ -157,11 +157,17 @@ def recommend(event: dict, profile: dict | None = None, forgot: dict | None = No
     if scenario:
         n = 0
         for it in scenario.get("defaults", []):
+            if "cold" in fl and re.search(r"선크림|부채|얼음", it["name"]):
+                continue
             if n < LIMITS["scenario"] and add(it, "scenario"):
                 n += 1
         n = 0
         for it in scenario.get("wear", []):
-            if n < LIMITS["wear"] and add(it, "scenario"):
+            if "cold" in fl and re.search(r"샌들|반팔|반바지|수영복", it["name"]):
+                continue                                   # 추운 날에는 여름 차림을 권하지 않는다
+            if "샌들" in it["name"] and not re.search(r"갯벌|하천|바다|해변|계곡|물놀이", " ".join(str(event.get(k) or "") for k in ("title", "location", "notes"))):
+                continue                                   # 물에 들어가는 신발은 그런 곳에 갈 때만
+            if n < LIMITS["wear"] and add(it | {"kind": "wear"}, "scenario"):
                 n += 1
 
     n = 0
@@ -202,4 +208,4 @@ def starter_items(scenario_id: str, data: dict | None = None) -> list[dict]:
     sc = next((s for s in data["scenarios"] if s["id"] == scenario_id), None)
     if not sc:
         return []
-    return [_rec(it, "scenario") for it in sc.get("defaults", []) + sc.get("wear", [])]
+    return [_rec(it, "scenario") for it in sc.get("defaults", [])] + [_rec(it | {"kind": "wear"}, "scenario") for it in sc.get("wear", [])]

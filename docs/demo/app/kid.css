@@ -1,3 +1,4 @@
+[hidden] { display: none !important; }   /* display 를 정한 요소도 hidden 이면 숨긴다 */
 :root {
   --bg: #fff6e9;
   --paper: #ffffff;

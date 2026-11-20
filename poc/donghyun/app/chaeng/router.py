@@ -106,7 +106,8 @@ async def photo_check(eid: int, image: UploadFile = File(...)):
         raise HTTPException(429, "오늘 사진 확인 횟수를 다 썼어요. 하나씩 확인해 주세요")
     service._kv_set(used_key, used + 1)
     todo = [i for i in v["items"] if not i["checked"] and not i["guardian"] and not i["blocked"] and not i.get("skipped")]
-    ask = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")]
+    ask = [i for i in todo if i["meta"].get("kind", "carry") == "carry" and not i["meta"].get("conditional")
+           and not i["meta"].get("quantity")]            # 수량이 적힌 것("비닐봉지 2장")은 사진으로 넘기지 않고 아이가 세어 본다
     rest = [i for i in todo if i not in ask]
     ban = [f["name"] for f in v["plus"]["forbidden"]]
     try:

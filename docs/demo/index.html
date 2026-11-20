@@ -97,7 +97,7 @@
 <main>
   <aside class="guide">
     <h2>1분 둘러보기</h2>
-    <p>차례대로 눌러 보세요. 아이 화면에서 한 일이 엄마 화면에 바로 남아요.</p>
+    <p>차례대로 눌러 보세요. 아이 화면에서 한 일이 엄마 화면에 남아요.</p>
     <div id="steps"></div>
   </aside>
   <section class="phones">
@@ -131,7 +131,7 @@ let startPy = null, callPy = null, eventId = 1;
 
 const STEPS = [
   { who: "엄마", title: "통신문을 넣어요",
-    text: "아래 <b>＋ 통신문</b>에서 <b>예시 통신문 넣기</b> → <b>AI로 일정·준비물 뽑기</b> → <b>캘린더에 넣기</b>. 일정, 준비물, 회신 마감이 따로 정리돼요.",
+    text: "아래 <b>＋ 통신문</b>에서 <b>예시 통신문 넣기</b> → <b>일정·준비물 뽑기</b> → <b>캘린더에 넣기</b>. 일정, 준비물, 회신 마감이 따로 정리돼요. 이 예시는 처음부터 달력에 들어 있어서 다시 넣어도 두 벌이 되지 않아요. 가진 통신문 글을 붙여 넣어 봐도 돼요.",
     go: () => inParent((w) => w.document.querySelector('.tabbar [data-view="add"]').click()) },
   { who: "엄마", title: "숨은 조건과 금지를 찾아요",
     text: "일정을 열면 <b>가져오지 않는 것</b>이 통신문 문장과 함께 나와요. <b>추천 준비물</b>은 통신문에 적힌 것과 섞지 않고 근거를 붙여 따로 보여 줘요.",
@@ -216,7 +216,17 @@ async function boot() {
     startPy(false);
     window.chaengApi = (method, url, json, fields, files) => {
       const u = new URL(url, "http://local");
-      return JSON.parse(callPy(method, u.pathname, JSON.stringify(Object.fromEntries(u.searchParams)), json || "", fields || "", files || 0));
+      const out = JSON.parse(callPy(method, u.pathname, JSON.stringify(Object.fromEntries(u.searchParams)), json || "", fields || "", files || 0));
+      try {
+        if (method === "POST" && u.pathname === "/api/notice/commit" && out[0] === 200) {     // 방금 넣은 일정을 둘러보기 2–5번이 열게 한다
+          const made = (out[1].created || []).map((c) => c.id);
+          const evs2 = window.chaengApi("GET", "/api/events")[1].filter((e) => made.includes(e.id) && e.kind !== "deadline");
+          if (evs2.length) eventId = evs2[0].id;
+        }
+        if (method === "POST" && /\/(kid-report|return\/report|stickers)$/.test(u.pathname))    // 아이가 알린 것이 엄마 화면에 바로 보이게
+          setTimeout(() => { const w = frames.parent.contentWindow; try { w.pollNoti && w.pollNoti(); w.renderHome && w.renderHome(); } catch {} }, 150);
+      } catch {}
+      return out;
     };
     const evs = window.chaengApi("GET", "/api/events")[1];
     eventId = (evs.find((e) => e.kind !== "deadline" && e.items.length) || evs[0]).id;

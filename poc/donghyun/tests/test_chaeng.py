@@ -493,6 +493,30 @@ class DemoDispatchTest(unittest.TestCase):
         r = self.call("POST", f"/api/plus/events/{eid}/photo-check", query={"case": "all"}, files=[("image", "image/jpeg", b"")])[1]
         self.assertNotIn(first["id"], r["seen"] + r["not_seen"])
 
+    def test_real_notice_lines(self):
+        """팀이 읽은 실제 통신문의 문장(조사 파일 26)으로: 금지 머리말, '등' 뒤 괄호, 준비물 줄 앞의 꾸밈말."""
+        from app.chaeng import guard, simple_extract
+        ban = lambda t: [f["name"] for f in guard.find_forbidden(t)]
+        pool = "5. 학생 준비물 : 수영복, 수영모자, 수영가방, 수건, 여분의 비닐 봉지, 등 (※ 입장제한: 래쉬가드, 아쿠아슈즈, 남성용 트렁크, 일반 티셔츠, , 스킨스쿠버 슈트, 수경 )"
+        self.assertEqual(ban(pool), ["래쉬가드", "아쿠아슈즈", "남성용 트렁크", "일반 티셔츠", "스킨스쿠버 슈트", "수경"])
+        self.assertTrue(guard.list_open(pool))
+        got = ban("※ 휴대지참 금지 품목: 고액의 현금(간식 살 곳 없음), 고가의 물건, 게임기, 폭죽, 화투, 카드, 술, 껌, 라이터, 화기, 칼 등")
+        self.assertEqual((len(got), "휴대" in got, {"게임기", "폭죽", "칼", "고액의 현금"} <= set(got)), (11, False, True))
+        self.assertEqual(ban("식중독 사고 예방을 위해 외부음식 반입은 금지합니다."), ["외부음식"])
+        self.assertEqual(ban("휴대폰은 가져가지 않고 학교에 둡니다."), ["휴대폰"])
+        self.assertEqual(ban("준비물: 도시락, 물. 우산은 가져오지 않아도 됩니다."), [])
+        items = lambda line: simple_extract.extract("3학년 안내\n일시: 2026년 12월 3일\n" + line)["events"][0]["items"]
+        self.assertEqual(items(pool), ["수영복", "수영모자", "수영가방", "수건", "여분의 비닐 봉지"])
+        self.assertEqual(items("※ 복장 및 준비물 : 활동하기 편한 옷, 운동화 착용, 개인 상비약, 생수 등"), ["활동하기 편한 옷", "운동화", "개인 상비약", "생수"])
+        self.assertEqual(items("5. 개인 준비물: 방한용품, 여벌 옷, 두꺼운 양말, 세면도구 등"), ["방한용품", "여벌 옷", "두꺼운 양말", "세면도구"])
+        self.assertEqual(items("4. 학생 준비물 수영복, 수영모, 수경"), ["수영복", "수영모", "수경"])
+        v = self.call("GET", "/api/plus/events/1")[1]                         # 숲체험 예시: 입는 추천은 '입는 것'으로, 갯벌 신발은 안 나온다
+        recs = {r["name"]: r["kind"] for r in v["plus"]["recs"]}
+        self.assertEqual((recs.get("긴 옷"), any("샌들" in n for n in recs)), ("wear", False))
+        eid = self.call("POST", "/api/plus/quick-event", json_body={"scenario": "pe_day", "date": "2026-12-05"})[1]["id"]
+        kinds = {i["meta"].get("kind") for i in self.call("GET", f"/api/plus/events/{eid}")[1]["items"]}
+        self.assertIn("wear", kinds)
+
     def test_calendar_out_link_and_file(self):
         t = self.call("GET", "/api/plus/events/1/tones")[1]
         self.assertEqual(sorted(t), ["basic", "cute", "neat"])

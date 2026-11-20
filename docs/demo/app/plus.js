@@ -164,6 +164,7 @@ function josa(word, withFinal, noFinal) {
 
   (async () => {
     try { MODE = await baseApi("/api/plus/mode"); } catch { return; }     // 추가 기능이 없는 서버
+    if (MODE.demo && $("#extractBtn")) $("#extractBtn").textContent = "일정·준비물 뽑기 (예시: 규칙으로 읽어요)";
     mountProfile();
     mountAdd();
     if (MODE.demo) $(".top .sub").insertAdjacentHTML("afterend", `<p class="sub demo">예시 모드 · AI를 부르지 않아요 · 지어낸 예시 일정</p>`);

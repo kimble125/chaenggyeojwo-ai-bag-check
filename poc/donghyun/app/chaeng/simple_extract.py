@@ -43,6 +43,9 @@ def sample(key: str = "a", today: Date | None = None) -> dict:
             "text": s["text"].format(d1=fmt(d1), d0=fmt(d0))}
 
 
+_ITEM_HEAD = re.compile(r"^[\s\d.※\-•·*◦■□▶○]*(?:(?:학생|개인|학습|복장\s*및)\s*)*(?:준비물|챙길\s?것|지참물)\s*[:：]?\s*")
+
+
 def split_items(chunk: str) -> list[str]:
     """쉼표로 나누되 괄호 안의 쉼표는 건드리지 않는다. 끝의 '등'은 뗀다."""
     out, buf, depth = [], "", 0
@@ -60,6 +63,7 @@ def split_items(chunk: str) -> list[str]:
     items = []
     for x in out:
         x = re.sub(r"\s+등\s*[.]?\s*$", "", x.strip()).strip(" .")
+        x = re.sub(r"\s*착용$", "", x)                 # "운동화 착용" → "운동화"
         if x and x != "등":
             items.append(x)
     return items
@@ -119,12 +123,14 @@ def extract(text: str, title: str | None = None, posted: str | None = None, toda
         notes.append("날짜를 못 찾아 내일로 넣었어요. 확인해 주세요.")
     items: list[str] = []
     for l in lines:
-        if re.match(r"^[\d.\s]*(준비물|챙길 것|지참물)", l):
-            items += split_items(re.split(r"[:：]", l, maxsplit=1)[-1])
+        m_head = _ITEM_HEAD.match(l)
+        if m_head:                                     # "5. 학생 준비물 : …", "※ 복장 및 준비물 : …", "4. 학생 준비물 수영복, …"
+            body = re.sub(r"\s*[(（]\s*※?\s*(?:입장\s?제한|금지)[^)）]*[)）]?\s*$", "", l[m_head.end():])   # 줄 끝의 금지 괄호는 준비물이 아니다
+            items += split_items(body)
         elif re.match(r"^[\d.\s]*선택\s*[:：]", l):
             items += [f"{x}(선택)" for x in split_items(re.split(r"[:：]", l, maxsplit=1)[-1])]
     for l in lines:                                   # 준비물 줄 밖에 있는 입고·신고 갈 것("체육복 입고 오기", "간편한 복장과 운동화를 착용합니다")
-        if re.match(r"^[\d.\s]*(준비물|챙길 것|지참물|선택)", l):
+        if _ITEM_HEAD.match(l) or re.match(r"^[\d.\s]*선택", l):
             continue
         for seg in re.split(r"(?<=[.!?])\s+", l):
             if re.search(r"않|말아|마세요|금지|불가|안\s?됩|안\s?돼", seg):

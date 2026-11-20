@@ -151,7 +151,7 @@
       <div class="node ai"><span class="k">AI · Claude API</span><b>통신문 읽기</b>행사일, 회신 마감, 시간, 장소, 준비물을 정해진 틀로</div>
       <div class="node rule"><span class="k">규칙 코드</span><b>금지·조건·"등" 찾기</b>"가져오지 않습니다 / 불가 / X", 괄호 조건. 통신문의 그 줄을 근거로</div>
       <div class="node ext"><span class="k">캘린더(MCP) · 알림</span><b>달력에 넣기</b>전날 저녁, 당일 아침 알림. 말투 3가지</div>
-      <div class="node rule"><span class="k">규칙 코드 + Open-Meteo</span><b>추천 만들기</b>통신문 23건에서 본 준비물 + 날씨·미세먼지 + 아이 특성. 금지된 것은 뺌</div>
+      <div class="node rule"><span class="k">규칙 코드 + Open-Meteo</span><b>추천 만들기</b>통신문 23건에서 본 준비물 + 날씨·미세먼지 + 아이 특성. 찾은 금지 항목은 뺌</div>
       <div class="node kidn"><span class="k">아이</span><b>미션 시작</b>추천 고르기 → 준비물을 펼치고 사진 찍기</div>
       <div class="node ai"><span class="k">AI · Claude API</span><b>사진 보기</b>무엇이 보이는지, 금지물이 보이는지. 애매하면 "안 보임"</div>
       <div class="node rule"><span class="k">규칙 코드</span><b>세기와 판정</b>안 보인 것은 아이가 직접 확인. 다 넣었을 때만 "다 챙겼지"</div>
@@ -168,14 +168,14 @@
     <div class="card"><h3>왜 이렇게 나눴나</h3><ul>
       <li>사진을 보는 모델은 손본 이미지에서 정답률이 크게 떨어졌다는 보고가 있어요(GPT-4V: 원본 79.6% → 편집 이미지 38.4%, <a href="https://arxiv.org/abs/2310.14566" target="_blank" rel="noopener">HallusionBench</a>). 우리 준비물 사진으로 잰 값은 아니어서, 사진만 믿지 않게 만들었어요.</li>
       <li>그래서 안 보인 것은 "없음"이 아니라 <b>아이가 직접 확인</b>으로 넘겨요.</li>
-      <li>금지, 조건, 개수는 모델에게 묻지 않고 규칙으로 정하고 자동 시험 54개로 묶어 뒀어요. 규칙도 놓칠 수 있어서, 엄마 화면에 통신문의 그 줄을 같이 보여 주고 확인받아요.</li>
+      <li>통신문에서 금지·조건·수량을 찾는 일, 세기, "다 챙겼지" 판정은 규칙 코드가 하고 자동 시험 55개로 묶어 뒀어요. 사진에서는 모델이 물건과 금지물이 보이는지만 말하고, 수량이 적힌 것과 애매한 것은 아이가 직접 확인해요. 규칙도 놓칠 수 있어서, 엄마 화면에 통신문의 그 줄을 같이 보여 주고 확인받아요.</li>
       <li>같은 규칙을 MCP 도구(통신문 읽기, 챙길 것, 캘린더 글)로도 열어 AI 비서에서 부를 수 있게 했어요. 예시 서버에서 호출을 확인했고, 실제 AI 비서에 연결해 보지는 못했어요.</li>
       <li>사진 확인의 정확도는 아직 재지 않았어요. 실제 사진 12장 이상으로 재고, 금지물을 놓치면 사진 확인은 빼고 "하나씩" 미션만 남길 계획이에요.</li></ul></div>
     <div class="card"><h3>아이와 가족을 지키는 것</h3><ul>
       <li>아이는 AI와 직접 대화하지 않아요. 화면의 말은 코드가 만들어요.</li>
       <li>약과 "필요한 학생만" 준비물은 아이 화면에 나오지 않고 보호자가 정해요.</li>
       <li>사진은 저장하지 않고 확인할 때만 AI로 보내요(AI 회사의 처리 정책은 따로 있어요). 통신문은 뽑아낸 일정·준비물과 근거 줄만 남겨요. 얼굴·이름표는 찍지 않게 안내해요.</li>
-      <li>로그인 없이 쓰고, 아이의 위치는 쓰지 않아요. 날씨는 정해 둔 동네의 예보만 봐요.</li></ul></div>
+      <li>로그인 없이 쓰고, 아이의 위치는 쓰지 않아요. 날씨는 보호자가 정해 둔 동네의 예보를 봐요.</li></ul></div>
   </div>
 </section>
 
@@ -199,7 +199,7 @@
   <h2>지금과 다음</h2>
   <div class="road">
     <div class="card"><b>넣기(가방)</b><span class="pill">프로토타입에 있음</span><p style="margin:6px 0 0;font-size:14.5px">통신문 → 달력 → 추천 → 아이 미션 → 엄마 칭찬. 통신문이 없는 평소 일정(학원, 체육)은 상황만 고르면 기본 준비물이 추천돼요.</p></div>
-    <div class="card"><b>돌아오기(귀가)</b><span class="pill">한 화면 있음</span><p style="margin:6px 0 0;font-size:14.5px">가져간 것 가운데 다시 가져와야 하는 것만 확인. 두고 온 것은 탓하지 않고 내일 할 일로. <a href="demo/app/design/uiux.html">화면 구조도</a></p></div>
+    <div class="card"><b>돌아오기(귀가)</b><span class="pill">한 화면 있음</span><p style="margin:6px 0 0;font-size:14.5px">가져간 것 가운데 다시 가져와야 하는 것만 확인. 두고 온 것은 탓하지 않고 "내일 학교에서 찾아보자"로(내일 챙길 것에 자동으로 넣는 것은 설계). <a href="demo/app/design/uiux.html">화면 구조도</a></p></div>
     <div class="card"><b>찾기(수납)</b><span class="pill plan">설계</span><p style="margin:6px 0 0;font-size:14.5px">수납장을 한 번 찍어 두면 못 찾은 물건의 자리를 알려 줘요. 나중에는 가방 친구 쏙이가 말을 거는 대화형 도우미로. <a href="demo/app/design/uiux.html">화면 구조도</a></p></div>
   </div>
 </section>

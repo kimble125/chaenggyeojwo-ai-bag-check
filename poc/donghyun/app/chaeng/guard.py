@@ -17,10 +17,12 @@ _QTY = re.compile(r"(\d+|한|두|세)\s*(개|장|자루|권|벌|켤레|병|봉�
 _SPLIT_NAMES = re.compile(r"\s*(?:[·,、/]|와\s|과\s|및\s|이나\s|\s또는\s|\s혹은\s)\s*")
 _BAN_VERB = re.compile(
     r"([^.!?()（）\n]{1,60}?)\s*(?:은|는|을|를|도)?\s*"
-    r"(?:가져오지|가지고\s?오지|갖고\s?오지|지참하지|싸\s?오지|들고\s?오지|휴대하지|소지하지)\s*(?:않|말|마|못)(?!아도|어도)")
+    r"(?:가져오지|가져가지|가지고\s?오지|가지고\s?가지|갖고\s?오지|지참하지|싸\s?오지|들고\s?오지|휴대하지|소지하지)\s*(?:않|말|마|못)(?!아도|어도)")
 _BAN_MARK = re.compile(
     r"([가-힣A-Za-z0-9 ·,、/]{1,40}?)\s*(?:등)?\s*(?:은|는|의)?\s*"
-    r"(?:(?:지참|반입|사용|휴대|소지)\s*)?(불가|금지|안\s?됩니다|안\s?돼요|안\s?됨|[X✕×])(?![가-힣A-Za-z])")
+    r"(?:(?:지참|반입|사용|휴대|소지|착용)\s*(?:은|는|이|을|를)?\s*)?(불가|금지|안\s?됩니다|안\s?돼요|안\s?됨|[X✕×])(?:합니다|입니다|됩니다|해요|예요)?(?![가-힣A-Za-z])")
+_BAN_HEAD = re.compile(                              # "(※ 입장제한: 래쉬가드, 수경)", "※ 휴대지참 금지 품목: 게임기, 폭죽 등"
+    r"(?:입장\s?제한|(?:휴대\s?)?(?:지참\s?)?(?:반입\s?)?금지\s?(?:품목|물품|물건)?|가져오지\s?않는\s?것)\s*[:：]\s*(.+)$")
 _BAN_IF = re.compile(                                # "장난감을 가져오면 안 됩니다"
     r"([^.!?()（）\n]{1,60}?)\s*(?:은|는|을|를|도)?\s*"
     r"(?:가져오면|가져오시면|가지고\s?오면|갖고\s?오면|지참하면|들고\s?오면|넣어\s?오면|휴대하면|소지하면)\s*안\s?(?:됩니다|돼요|돼|됨|되어요|된다|되요)")
@@ -92,12 +94,17 @@ def find_forbidden(text: str) -> list[dict]:
     """알림장 글에서 가져오면 안 되는 것. [{name, evidence}] (같은 이름은 한 번만)"""
     seen, out = set(), []
     for line in lines_of(text):
-        chunks = [m.group(1) for m in _BAN_IF.finditer(line)]
-        rest = _BAN_IF.sub(" ", line)                      # 위에서 읽은 토막은 아래 규칙이 다시 읽지 않게 뺀다
+        heads = [m.group(1) for m in _BAN_HEAD.finditer(line)]
+        line_wo = _BAN_HEAD.sub(" ", line)                 # 머리말 뒤 목록은 통째로 읽고, 아래 규칙이 다시 읽지 않게 뺀다
+        chunks = [m.group(1) for m in _BAN_IF.finditer(line_wo)]
+        rest = _BAN_IF.sub(" ", line_wo)                   # 위에서 읽은 토막은 아래 규칙이 다시 읽지 않게 뺀다
         chunks += [m.group(1) for m in _BAN_VERB.finditer(rest)]
         chunks += [m.group(1) for m in _BAN_MARK.finditer(rest)]
+        chunks = [re.split(r"위해서?|위하여|때문에|인해", c)[-1] for c in chunks]      # "식중독 예방을 위해 외부음식 반입은 금지" → "외부음식"
+        chunks = [c.split(":")[-1].split("：")[-1] for c in chunks]
+        for h in heads:                                    # 목록 안의 괄호 설명은 떼고 이름만 읽는다
+            chunks += [re.sub(r"[(（][^)）]*[)）]?", "", x).strip(" )）") for x in re.split(r"[,、]", h)]
         for chunk in chunks:
-            chunk = chunk.split(":")[-1].split("：")[-1]
             for n in _names(chunk):
                 if n not in seen:
                     seen.add(n)
@@ -119,7 +126,7 @@ def find_not_needed(text: str) -> list[dict]:
 def list_open(text: str) -> bool:
     """준비물 줄이 '등'으로 끝나는가(목록에 없는 것이 더 있을 수 있음)."""
     for line in lines_of(text):
-        if re.search(r"준비물|챙길\s?것|지참물", line) and re.search(r"등\s*[.)]?\s*$", line):
+        if re.search(r"준비물|챙길\s?것|지참물", line) and re.search(r"(?:^|[\s,、])등\s*(?:[.)]?\s*$|[(（*])", line):
             return True
     return False
 
