@@ -82,7 +82,7 @@ function josa(word, withFinal, noFinal) {
       <div class="chip-add"><input id="stkMsg" maxlength="40" placeholder="한마디(안 써도 돼요). 예: 스스로 챙겨서 멋져"></div>
       <p class="hint" id="stkGiven">${p.stickers.length ? `준 스티커: ${p.stickers.map((x) => esc(x.sticker)).join(" ")}` : "스티커를 누르면 아이 스티커판에 붙어요"}</p>
       <div class="actions"><a class="ghost small" href="kid.html?e=${v.id}&mode=home">🏠 집에 와서 가방 확인(돌아오기)</a>
-        <button class="ghost small" id="toneBtn">달력에 넣는 말투 보기</button></div>
+        <button class="ghost small" id="toneBtn">📅 내 캘린더에 넣기(말투 고르기)</button></div>
       <div id="toneBox"></div></div>` : "";
     const redo = v.kind !== "deadline" && !p.analyzed && v.items.some((i) => i.source === "notice") ? `<div class="card plus"><strong>금지·조건을 아직 확인하지 못했어요</strong>
       <p class="hint">통신문 글을 붙여 넣으면 가져오지 않는 것과 조건을 다시 찾아요. 글은 저장하지 않아요.</p>
@@ -108,8 +108,16 @@ function josa(word, withFinal, noFinal) {
     }));
     $("#toneBtn")?.addEventListener("click", async () => {
       const t = await plusApi(`/events/${id}/tones`);
-      $("#toneBox").innerHTML = Object.entries(t).map(([k, x]) => `<div class="tone"><b>${esc(x.label)}</b> ${esc(x.title)}<pre>${esc(x.body)}</pre></div>`).join("") +
-        `<p class="hint">같은 준비물을 말투만 바꿔 적어요. 숫자와 목록은 코드가 채워요.</p>`;
+      $("#toneBox").innerHTML = Object.entries(t).map(([k, x]) => `<div class="tone"><b>${esc(x.label)}</b> ${esc(x.title)}<pre>${esc(x.body)}</pre>
+          <div class="calout"><a class="ghost small" href="${esc(x.google_url)}" target="_blank" rel="noopener">구글 캘린더에 넣기</a>
+          <button class="ghost small" data-ics="${esc(k)}">캘린더 파일 받기(.ics)</button></div></div>`).join("") +
+        `<p class="hint">같은 준비물을 말투만 바꿔 적어요. 숫자와 목록은 코드가 채워요. 구글 캘린더는 채워진 화면이 열리고 저장은 직접 눌러요. 캘린더 파일은 애플·삼성 캘린더 등에서 열 수 있고 전날 저녁·당일 아침 알림이 들어 있어요(앱에 따라 알림은 그 앱의 기본값으로 바뀔 수 있어요).</p>`;
+      $$("#toneBox [data-ics]").forEach((b) => b.addEventListener("click", () => {
+        const x = t[b.dataset.ics], a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([x.ics], { type: "text/calendar;charset=utf-8" }));
+        a.download = x.filename; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }));
     });
   }
 

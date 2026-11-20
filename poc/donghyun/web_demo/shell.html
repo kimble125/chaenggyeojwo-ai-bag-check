@@ -82,7 +82,7 @@
   </div>
   <nav>
     <a class="pill" href="../index.html">한눈에 보기</a>
-    <a class="pill" href="https://github.com/kimble125/chaenggyeojwo-ai-bag-check" target="_blank" rel="noopener">코드(GitHub)</a>
+    <a class="pill" href="https://github.com/kimble125/chaenggyeojwo-ai-bag-check/tree/hoyeon" target="_blank" rel="noopener">코드(GitHub)</a>
     <button class="pill" id="reset">↺ 처음으로</button>
   </nav>
 </header>
@@ -140,7 +140,7 @@ const STEPS = [
     text: "<b>이것도 챙길까?</b>에서 추천을 고르고, <b>유리병이 있음</b> 예시 사진을 눌러 보세요. 가져가면 안 되는 것을 알려 주고, 안 보인 것만 하나씩 확인해요.",
     go: () => openKid(`kid.html?e=${eventId}`) },
   { who: "엄마", title: "엄마는 보고 칭찬해요",
-    text: "아이가 <b>엄마에게 보여 주기</b>를 누르면 결과가 남아요. 일정에서 <b>칭찬 스티커</b>를 붙이면 아이의 스티커판(⭐)에 쌓여요.",
+    text: "아이가 <b>엄마에게 보여 주기</b>를 누르면 결과가 남아요. 일정에서 <b>칭찬 스티커</b>를 붙이면 아이의 스티커판(⭐)에 쌓여요. <b>📅 내 캘린더에 넣기</b>로 구글 캘린더 링크나 캘린더 파일도 만들 수 있어요.",
     go: () => inParent((w) => w.openSheet(eventId).then(() => setTimeout(() => w.document.querySelector("#sheet [data-stk]")?.scrollIntoView({ block: "center" }), 300))) },
   { who: "아이", title: "집에 와서 다시 확인해요",
     text: "다녀온 뒤에는 가져간 것 가운데 <b>다시 가져와야 하는 것</b>만 물어봐요. 도시락 속 음식이나 물티슈처럼 쓰고 없어지는 것은 빼요.",

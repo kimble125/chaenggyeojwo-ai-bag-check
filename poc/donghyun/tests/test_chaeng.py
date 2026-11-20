@@ -1,6 +1,7 @@
 """챙겼지 추가 기능 시험. 실행: poc/donghyun 에서  python3 -m unittest discover -s tests -v
 모델 호출과 네트워크가 없다. 알림장은 전부 지어낸 것이다(실제 학교 문서 아님).
 """
+import urllib.parse
 import os
 import tempfile
 import unittest
@@ -491,6 +492,46 @@ class DemoDispatchTest(unittest.TestCase):
         self.assertEqual(self.call("POST", f"/api/plus/events/{eid}/items/{first['id']}/skip", json_body={"skipped": True})[0], 200)
         r = self.call("POST", f"/api/plus/events/{eid}/photo-check", query={"case": "all"}, files=[("image", "image/jpeg", b"")])[1]
         self.assertNotIn(first["id"], r["seen"] + r["not_seen"])
+
+    def test_calendar_out_link_and_file(self):
+        t = self.call("GET", "/api/plus/events/1/tones")[1]
+        self.assertEqual(sorted(t), ["basic", "cute", "neat"])
+        day = self.call("GET", "/api/plus/events/1")[1]["date"].replace("-", "")
+        g = urllib.parse.parse_qs(urllib.parse.urlparse(t["cute"]["google_url"]).query)
+        self.assertEqual((g["action"], g["ctz"], g["text"]), (["TEMPLATE"], ["Asia/Seoul"], [t["cute"]["title"]]))
+        self.assertEqual(g["dates"], [f"{day}T000000Z/{day}T053000Z"])                 # 09:00–14:30 한국 시간
+        ics = t["basic"]["ics"]
+        self.assertTrue(ics.startswith("BEGIN:VCALENDAR\r\n") and ics.endswith("END:VCALENDAR\r\n"))
+        self.assertIn(f"DTSTART:{day}T000000Z", ics)
+        self.assertEqual((ics.count("BEGIN:VALARM"), "TRIGGER:-PT14H" in ics, "TRIGGER:-PT1H30M" in ics), (2, True, True))   # 전날 19:00, 당일 07:30
+        self.assertTrue(all(len(l.encode("utf-8")) <= 75 for l in ics.split("\r\n")))
+        self.assertIn("유리병", ics.replace("\r\n ", ""))                              # 금지 항목이 메모에 들어간다
+        all_day = self.call("GET", "/api/plus/events/2/tones")[1]["basic"]             # 회신 마감: 시간이 없으면 하루 종일
+        self.assertIn("DTSTART;VALUE=DATE:", all_day["ics"])
+        self.assertIn("TRIGGER:-PT5H", all_day["ics"])
+
+    def test_mcp_tools(self):
+        from app.chaeng import mcp_tools
+        rpc = lambda method, params=None, mid=1: mcp_tools.handle_rpc({"jsonrpc": "2.0", "id": mid, "method": method, "params": params or {}})
+        init = rpc("initialize", {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}})["result"]
+        self.assertEqual((init["protocolVersion"], init["serverInfo"]["name"], "tools" in init["capabilities"]), ("2025-03-26", "gabangssok", True))
+        self.assertIsNone(mcp_tools.handle_rpc({"jsonrpc": "2.0", "method": "notifications/initialized"}))
+        names = [t["name"] for t in rpc("tools/list")["result"]["tools"]]
+        self.assertEqual(names, ["list_events", "read_notice", "packing_plan", "calendar_entry"])
+        call = lambda name, **a: rpc("tools/call", {"name": name, "arguments": a})["result"]
+        text = "2학년 현장체험학습 안내\n일시: 2026년 12월 3일(목) 9:00~14:00\n준비물: 도시락, 물(플라스틱 물통), 개인 약(필요한 학생) 등\n※ 장난감을 가져오면 안 됩니다."
+        r = call("read_notice", text=text)["structuredContent"]
+        self.assertEqual((r["events"][0]["date"], r["list_ends_with_etc"], [f["name"] for f in r["forbidden"]]), ("2026-12-03", True, ["장난감"]))
+        items = {i["name"]: i for i in r["events"][0]["items"]}
+        self.assertEqual((items["물"]["condition"], items["개인 약"].get("parent_decides")), ("플라스틱 물통", True))
+        p = call("packing_plan", event_id=1)["structuredContent"]
+        self.assertEqual((p["summary"]["count"], len(p["to_pack"]), [f["name"] for f in p["forbidden"]][:1]), (8, 8, ["유리병"]))
+        self.assertTrue(any("약" in i["name"] for i in p["parent_decides"]) and all("약" not in i["name"] for i in p["to_pack"]))
+        c = call("calendar_entry", event_id=1, tone="neat")["structuredContent"]
+        self.assertTrue(c["title"].startswith("[준비물 8]") and c["google_url"].startswith("https://calendar.google.com/") and len(c["reminders"]) == 2)
+        self.assertTrue(call("packing_plan", event_id=999999)["isError"])
+        self.assertEqual(rpc("tools/call", {"name": "nope"})["error"]["code"], -32602)
+        self.assertEqual(rpc("x/y")["error"]["code"], -32601)
 
     def test_reset_returns_to_seed(self):
         self.d.boot(reset=True)

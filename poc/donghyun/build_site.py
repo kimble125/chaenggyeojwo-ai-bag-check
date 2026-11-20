@@ -27,7 +27,7 @@ WEB = os.path.join(HERE, "web_demo")
 # 브라우저 안에서 쓰는 계산 코드(모델 호출·FastAPI 가 필요한 파일은 넣지 않는다)
 PY_FILES = [
     "demo_server.py", "app/db.py", "app/reminders.py", "app/weather.py",
-    "app/chaeng/__init__.py", "app/chaeng/guard.py", "app/chaeng/recommend.py", "app/chaeng/service.py",
+    "app/chaeng/__init__.py", "app/chaeng/calendar_out.py", "app/chaeng/guard.py", "app/chaeng/recommend.py", "app/chaeng/service.py",
     "app/chaeng/simple_extract.py", "app/chaeng/tone.py", "app/chaeng/scenarios.json",
 ]
 PAGES = {"index.html": "parent.html", "kid.html": "kid.html"}

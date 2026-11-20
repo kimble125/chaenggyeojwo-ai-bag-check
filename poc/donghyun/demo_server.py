@@ -7,7 +7,8 @@
 - FastAPI 본체(app/main.py)와 같은 화면(app/static)과 같은 저장소(app/db.py)를 쓴다.
 - 모델을 부르지 않는다. 알림장은 규칙으로 읽고(app/chaeng/simple_extract.py),
   사진 확인은 '예시 결과'를 돌려준다(화면에 예시라고 적힌다). API 키가 필요 없다.
-- 캘린더 등록은 MCP 를 거치지 않고 같은 DB 에 바로 넣는다.
+- 캘린더 등록은 MCP 를 거치지 않고 같은 DB 에 바로 넣는다. 대신 /mcp/ 에서 가방쏙 도구(read_notice, packing_plan,
+  calendar_entry, list_events)를 MCP 로 연다(app/chaeng/mcp_tools.py). MCP_ACCESS_TOKEN 을 주면 Bearer 토큰을 확인한다.
 - 날씨는 Open-Meteo 를 그대로 부른다(키 없음). 안 되면 날씨 없이 돈다.
 - 처음 켜면 지어낸 예시 일정을 넣는다(실제 학교 문서가 아니다).
 - 같은 주소표를 서버 없이 부르는 길(dispatch)이 있다. 브라우저 안에서 도는 판(build_site.py)과 시험이 쓴다.
@@ -258,6 +259,29 @@ def r_static(h, q, rel):
     return SENT
 
 
+def r_mcp(h, q):
+    """MCP(Streamable HTTP, JSON 응답). 이 컴퓨터에서 온 요청만 받고, 토큰이 정해져 있으면 확인한다."""
+    from app.chaeng import mcp_tools
+    origin = h.headers.get("Origin")
+    if origin and urllib.parse.urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
+        h._send(403, {"detail": "이 컴퓨터에서 온 요청만 받아요"})
+        return SENT
+    token = os.environ.get("MCP_ACCESS_TOKEN", "")
+    if token and h.headers.get("Authorization") != f"Bearer {token}":
+        h._send(401, {"detail": "토큰이 맞지 않아요"})
+        return SENT
+    msg = json.loads(h._body() or b"{}")
+    if isinstance(msg, list):
+        out = [r for r in (mcp_tools.handle_rpc(m) for m in msg) if r is not None]
+    else:
+        out = mcp_tools.handle_rpc(msg)
+    if out is None or out == []:
+        h._send(202, b"")
+    else:
+        h._send(200, out)
+    return SENT
+
+
 def r_fetch(h, q):
     url = (h._json().get("url") or "").strip()
     key = url.split(":")[-1] if url.startswith("sample:") else "a"
@@ -341,6 +365,7 @@ P = r"/api/plus/events/(\d+)"
 ROUTES = [
     ("GET", r"/", _page("index.html")), ("GET", r"/kid", _page("kid.html")), ("GET", r"/static/(.+)", r_static),
     ("GET", r"/healthz", lambda h, q: {"ok": True, "mode": "demo"}),
+    ("POST", r"/mcp/?", r_mcp), ("GET", r"/mcp/?", lambda h, q: (h._send(405, {"detail": "POST 로 보내 주세요"}), SENT)[1]),
     ("POST", r"/api/notice/fetch", r_fetch), ("POST", r"/api/notice/extract", r_extract), ("POST", r"/api/notice/commit", r_commit),
     ("GET", r"/api/events", lambda h, q: db.list_events(q.get("start"), q.get("end"))),
     ("GET", E, r_event), ("PATCH", E, r_event_patch),

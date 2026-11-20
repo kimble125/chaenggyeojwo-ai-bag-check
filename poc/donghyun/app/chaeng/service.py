@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 from .. import db
-from . import guard, recommend, tone
+from . import calendar_out, guard, recommend, tone
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS plus_item (item_id INTEGER PRIMARY KEY, meta TEXT NOT NULL);
@@ -343,4 +343,9 @@ def tone_previews(eid: int) -> dict | None:
     v = view(eid)
     if not v:
         return None
-    return {k: dict(zip(("title", "body"), tone.calendar_entry(v, k))) | {"label": t["label"]} for k, t in tone.TONES.items()}
+    out = {}
+    for k, t in tone.TONES.items():                      # 말투마다 제목·메모와, 바깥 캘린더로 넘길 주소·파일
+        b = calendar_out.bundle(v, k)
+        out[k] = {"label": t["label"], "title": b["title"], "body": b["description"],
+                  "google_url": b["google_url"], "ics": b["ics"], "filename": b["filename"]}
+    return out

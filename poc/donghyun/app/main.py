@@ -31,6 +31,13 @@ except Exception as e:                 # noqa: BLE001
     plus_service = plus_router = None
     log.warning("chaeng plus not loaded: %s", e)
 
+if plus_service:                       # 추천·금지·말투를 같은 MCP 서버의 도구로 더한다(read_notice, packing_plan, calendar_entry)
+    try:
+        from .chaeng import mcp_tools
+        mcp_tools.register(mcp)
+    except Exception as e:             # noqa: BLE001
+        log.warning("chaeng mcp tools not registered: %s", e)
+
 
 SIMULATE = {  # 발표 시연용: 실제 예보 위에 덮어씀
     "rain": {"weather": "비", "rain_prob": 80, "rain_prob_window": 80, "rain_mm": 12.0, "rain_signal": "rain"},
