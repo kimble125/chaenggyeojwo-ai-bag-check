@@ -356,6 +356,10 @@ class ServiceTest(unittest.TestCase):
         names = [i["name"] for i in r["items"]]
         self.assertEqual(names, ["개인용 돗자리", "물통"])
         self.assertIsNone(service.set_returned(eid, 999999, True))     # 이 일정의 물건이 아니면 받지 않는다
+        eid_w = fresh_event(["도시락통", "운동화"])
+        for i in service.view(eid_w)["items"]:
+            db.set_item_checked(i["id"], True)
+        self.assertEqual([i["name"] for i in service.return_view(eid_w)["items"]], ["도시락통"])   # 입고 간 것은 묻지 않는다
         r = service.set_returned(eid, r["items"][0]["id"], True)
         self.assertEqual(r["summary"]["left"], ["물통"])
         self.assertIn("아직 1", service.return_report(eid)["body"])

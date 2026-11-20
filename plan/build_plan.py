@@ -302,14 +302,14 @@ def build_html(path):
   @page {{ size: A4; margin: 11mm 14mm; }}
   * {{ box-sizing: border-box; }}
   body {{ margin: 0; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; font-size: 10pt; line-height: 1.36; color: #16182a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-  header {{ display: flex; align-items: center; gap: 3mm; margin-bottom: 1.6mm; }}
+  header {{ display: flex; align-items: center; gap: 3mm; margin-bottom: 1.6mm; position: relative; padding-top: 1mm; }}
   header img {{ height: 12mm; }}
   header h1 {{ margin: 0; font-size: 18pt; color: #6a48f0; white-space: nowrap; }}
-  header .tag {{ font-size: 11pt; font-weight: 600; }}
-  header .meta {{ margin-left: auto; font-size: 8.5pt; color: #62616d; white-space: nowrap; }}
+  header .tag {{ font-size: 10.5pt; font-weight: 600; white-space: nowrap; padding-top: 3mm; }}
+  header .meta {{ position: absolute; right: 0; top: 0; font-size: 8.5pt; color: #62616d; white-space: nowrap; }}
   table {{ width: 100%; border-collapse: collapse; }}
   th, td {{ border: 0.25mm solid #9a97a8; padding: 1.1mm 1.7mm; vertical-align: top; text-align: left; }}
-  th {{ width: 24mm; background: #efeaff; font-weight: 700; }}
+  th {{ width: 25mm; background: #efeaff; font-weight: 700; font-size: 9.6pt; word-break: keep-all; }}
   p {{ margin: 0; }}
   p.h {{ font-weight: 700; color: #6a48f0; margin-top: 0.8mm; }}
   td > p.h:first-child {{ margin-top: 0; }}

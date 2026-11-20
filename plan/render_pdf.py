@@ -186,7 +186,7 @@ def render(size):
 
 
 if __name__ == "__main__":
-    out = os.path.join(bp.HERE, "gabangssok_plan.pdf")
+    out = os.path.join(bp.HERE, "gabangssok_plan_image.pdf")      # 예비본. 내는 것은 브라우저 인쇄본 gabangssok_plan.pdf
     chosen = None
     for size in (10.6, 10.4, 10.2, 10.0, 9.8, 9.6, 9.4, 9.2, 9.0, 8.8):
         doc = render(size)

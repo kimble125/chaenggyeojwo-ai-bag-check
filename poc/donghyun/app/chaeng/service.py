@@ -282,7 +282,7 @@ def return_view(eid: int) -> dict | None:
     v = view(eid)
     if not v:
         return None
-    back = [i for i in v["items"] if i["checked"] and i["meta"].get("bring_back") and i["meta"].get("kind") != "submit"]
+    back = [i for i in v["items"] if i["checked"] and i["meta"].get("bring_back") and i["meta"].get("kind") not in ("submit", "wear")]   # 낸 것과 입고 간 것은 묻지 않는다
     done = set(v["plus"]["returned"])
     items = [{"id": i["id"], "name": i["meta"].get("base") or i["name"], "returned": i["id"] in done,
               "tag": i["meta"].get("group") == "tag"} for i in back]
